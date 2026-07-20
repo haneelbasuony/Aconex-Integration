@@ -1,0 +1,19 @@
+{
+  "name": "aconex-documents-api",
+  "version": "1.0.0",
+  "description": "Aconex OAuth (User-Bound Integration, Lobby OAuth) + Documents API client",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^4.4.1",
+    "json-bigint": "^1.0.0",
+    "mssql": "^12.7.0",
+    "node-cron": "^4.6.0",
+    "msnodesqlv8": "^4.4.1"
+  }
+}

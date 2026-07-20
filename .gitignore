@@ -1,0 +1,15 @@
+# Never commit real secrets
+.env
+
+# Dependencies
+node_modules/
+
+# Generated output
+document-register.xlsx
+document-*.xml
+document-*.dat
+document-*.pdf
+document-*.xls
+document-*.xlsx
+document-*.doc
+document-*.docx
