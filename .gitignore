@@ -13,3 +13,20 @@ document-*.xls
 document-*.xlsx
 document-*.doc
 document-*.docx
+# Node packages
+node_modules/
+
+# Environment secrets
+.env
+
+# Logs
+logs/
+
+# Generated executables
+*.exe
+
+# Generated exports
+*.xlsx
+
+# Temporary files
+*.tmp

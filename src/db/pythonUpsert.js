@@ -84,6 +84,13 @@ async function upsertRows(rows) {
   }
 
   const tmpFile = path.join(os.tmpdir(), `aconex-sync-${Date.now()}-${process.pid}.json`);
+  const projectId = requireEnv('ACONEX_PROJECT_ID');
+
+  rows = rows.map(row => ({
+  projectid: projectId,
+  ...row
+  }));
+  
   fs.writeFileSync(tmpFile, JSON.stringify({ rows, columns }));
 
   console.log(`Handing off ${rows.length} rows to Python (${scriptPath}) for upsert via pyodbc...`);
@@ -104,6 +111,13 @@ async function upsertRows(rows) {
       (err, stdout, stderr) => {
         fs.unlink(tmpFile, () => {}); // best-effort cleanup
 
+          if (stdout) {
+            console.log(stdout);
+          }
+
+          if (stderr) {
+            console.error(stderr);
+          }
         if (err) {
           reject(new Error(`Python upsert failed: ${(stderr || err.message).trim()}`));
           return;

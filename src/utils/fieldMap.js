@@ -39,58 +39,793 @@
 // DataTypes in src/db/documentRegisterModel.js. Kept simple on purpose so
 // aconex.config.js stays readable without needing to know Sequelize.
 const FIELD_MAP = [
-  { canonicalKey: 'documentId',     xmlKey: 'DocumentId',            jsonKey: 'documentId',      sqlColumn: 'DocumentId',          sqlType: 'bigString', length: 32  }, // primary key
-  { canonicalKey: 'docno',          xmlKey: 'DocumentNumber',        jsonKey: 'documentNumber',   sqlColumn: 'DocumentNumber',       sqlType: 'string',    length: 210 },
-  { canonicalKey: 'title',          xmlKey: 'Title',                 jsonKey: 'title',            sqlColumn: 'Title',                sqlType: 'string',    length: 500 },
-  { canonicalKey: 'doctype',        xmlKey: 'DocumentType',          jsonKey: 'documentType',     sqlColumn: 'DocumentType',         sqlType: 'string',    length: 200 },
-  { canonicalKey: 'statusid',       xmlKey: 'DocumentStatus',        jsonKey: 'statusid',         sqlColumn: 'DocumentStatus',       sqlType: 'string',    length: 100 },
-  { canonicalKey: 'revision',       xmlKey: 'Revision',              jsonKey: 'revision',         sqlColumn: 'Revision',             sqlType: 'string',    length: 50  },
-  { canonicalKey: 'revisiondate',   xmlKey: 'RevisionDate',          jsonKey: 'revisiondate',     sqlColumn: 'RevisionDate',         sqlType: 'date'                    },
-  { canonicalKey: 'author',         xmlKey: 'Author',                jsonKey: 'author',           sqlColumn: 'Author',               sqlType: 'string',    length: 200 },
-  { canonicalKey: 'category',       xmlKey: 'Category',              jsonKey: 'category',         sqlColumn: 'Category',             sqlType: 'string',    length: 200 },
-  { canonicalKey: 'discipline',     xmlKey: 'Discipline',            jsonKey: 'discipline',       sqlColumn: 'Discipline',           sqlType: 'string',    length: 200 },
-  { canonicalKey: 'filename',       xmlKey: 'Filename',              jsonKey: 'filename',         sqlColumn: 'Filename',             sqlType: 'string',    length: 500 },
-  { canonicalKey: 'fileSize',       xmlKey: 'FileSize',              jsonKey: 'fileSize',         sqlColumn: 'FileSize',             sqlType: 'bigint'                  },
-  { canonicalKey: 'fileType',       xmlKey: 'FileType',              jsonKey: 'fileType',         sqlColumn: 'FileType',             sqlType: 'string',    length: 10  },
-  { canonicalKey: 'confidential',   xmlKey: 'Confidential',          jsonKey: 'confidential',     sqlColumn: 'Confidential',         sqlType: 'boolean'                 },
-  { canonicalKey: 'current',        xmlKey: 'Current',               jsonKey: 'current',          sqlColumn: 'IsCurrent',            sqlType: 'boolean'                 },
-  { canonicalKey: 'comments',       xmlKey: 'Comments',              jsonKey: 'comments',         sqlColumn: 'Comments',             sqlType: 'text'                    },
-  { canonicalKey: 'comments2',      xmlKey: 'Comments2',             jsonKey: 'comments2',        sqlColumn: 'Comments2',            sqlType: 'text'                    },
-  { canonicalKey: 'registered',     xmlKey: 'DateModified',          jsonKey: 'dateModified',     sqlColumn: 'DateModified',         sqlType: 'date'                    },
-  { canonicalKey: 'received',       xmlKey: 'DateCreated',           jsonKey: 'dateCreated',      sqlColumn: 'DateCreated',          sqlType: 'date'                    },
-  { canonicalKey: 'reviewed',       xmlKey: 'DateReviewed',          jsonKey: 'dateReviewed',     sqlColumn: 'DateReviewed',         sqlType: 'date'                    },
-  { canonicalKey: 'approved',       xmlKey: 'DateApproved',          jsonKey: 'dateApproved',     sqlColumn: 'DateApproved',         sqlType: 'date'                    },
-  { canonicalKey: 'forreview',      xmlKey: 'DateForReview',         jsonKey: 'dateForReview',    sqlColumn: 'DateForReview',        sqlType: 'date'                    },
-  { canonicalKey: 'toclient',       xmlKey: 'ToClientDate',          jsonKey: 'toClientDate',     sqlColumn: 'ToClientDate',         sqlType: 'date'                    },
-  { canonicalKey: 'reference',      xmlKey: 'Reference',             jsonKey: 'reference',        sqlColumn: 'Reference',            sqlType: 'string',    length: 120 },
-  { canonicalKey: 'reviewSource',   xmlKey: 'ReviewSource',          jsonKey: 'reviewSource',     sqlColumn: 'ReviewSource',         sqlType: 'string',    length: 50  },
-  { canonicalKey: 'reviewstatus',   xmlKey: 'ReviewStatus',          jsonKey: 'reviewstatus',     sqlColumn: 'ReviewStatus',         sqlType: 'string',    length: 50  },
-  { canonicalKey: 'packagenumber',  xmlKey: 'PackageNumber',         jsonKey: 'packageNumber',    sqlColumn: 'PackageNumber',        sqlType: 'string',    length: 50  },
-  { canonicalKey: 'contractnumber', xmlKey: 'ContractNumber',        jsonKey: 'contractnumber',   sqlColumn: 'ContractNumber',       sqlType: 'string',    length: 50  },
-  { canonicalKey: 'vdrcode',        xmlKey: 'Vdrcode',               jsonKey: 'vdrcode',          sqlColumn: 'VdrCode',              sqlType: 'string',    length: 50  },
-  { canonicalKey: 'trackingid',     xmlKey: 'TrackingId',            jsonKey: 'trackingid',       sqlColumn: 'TrackingId',           sqlType: 'bigString', length: 32  },
-  { canonicalKey: 'versionnumber',  xmlKey: 'VersionNumber',         jsonKey: 'versionnumber',    sqlColumn: 'VersionNumber',        sqlType: 'integer'                 },
-  { canonicalKey: 'percentComplete',xmlKey: 'PercentComplete',       jsonKey: 'percentComplete',  sqlColumn: 'PercentComplete',      sqlType: 'integer'                 },
-  { canonicalKey: 'tagNumber',      xmlKey: 'TagNumber',             jsonKey: 'tagNumber',        sqlColumn: 'TagNumber',            sqlType: 'string',    length: 50  },
-  { canonicalKey: 'scale',          xmlKey: 'Scale',                 jsonKey: 'scale',            sqlColumn: 'Scale',                sqlType: 'string',    length: 9   },
-  { canonicalKey: 'attribute1',     xmlKey: 'Attribute1',            jsonKey: 'attribute1',       sqlColumn: 'Attribute1',           sqlType: 'text'                    },
-  { canonicalKey: 'attribute2',     xmlKey: 'Attribute2',            jsonKey: 'attribute2',       sqlColumn: 'Attribute2',           sqlType: 'text'                    },
-  { canonicalKey: 'attribute3',     xmlKey: 'Attribute3',            jsonKey: 'attribute3',       sqlColumn: 'Attribute3',           sqlType: 'text'                    },
-  { canonicalKey: 'attribute4',     xmlKey: 'Attribute4',            jsonKey: 'attribute4',       sqlColumn: 'Attribute4',           sqlType: 'text'                    },
-  { canonicalKey: 'selectlist1',    xmlKey: 'SelectList1',           jsonKey: 'selectList1',      sqlColumn: 'SelectList1',          sqlType: 'string',    length: 60  },
-  { canonicalKey: 'selectlist2',    xmlKey: 'SelectList2',           jsonKey: 'selectList2',      sqlColumn: 'SelectList2',          sqlType: 'string',    length: 60  },
-  { canonicalKey: 'selectlist3',    xmlKey: 'SelectList3',           jsonKey: 'selectList3',      sqlColumn: 'SelectList3',          sqlType: 'string',    length: 60  },
-  { canonicalKey: 'selectlist4',    xmlKey: 'SelectList4',           jsonKey: 'selectList4',      sqlColumn: 'SelectList4',          sqlType: 'string',    length: 60  },
-  { canonicalKey: 'selectlist5',    xmlKey: 'SelectList5',           jsonKey: 'selectList5',      sqlColumn: 'SelectList5',          sqlType: 'string',    length: 60  },
-  { canonicalKey: 'projectField1',  xmlKey: 'ProjectField1',         jsonKey: 'projectField1',    sqlColumn: 'ProjectField1',        sqlType: 'string',    length: 120 },
-  { canonicalKey: 'projectField2',  xmlKey: 'ProjectField2',         jsonKey: 'projectField2',    sqlColumn: 'ProjectField2',        sqlType: 'string',    length: 120 },
-  { canonicalKey: 'projectField3',  xmlKey: 'ProjectField3',         jsonKey: 'projectField3',    sqlColumn: 'ProjectField3',        sqlType: 'string',    length: 120 },
+  {
+    canonicalKey: 'documentId',
+    xmlKey: 'documentId',
+    jsonKey: 'documentId',
+    jsonRequestKey: null,
+    sqlColumn: 'documentId',
+    sqlType: 'bigString',
+    length: 32
+  },
+
+  {
+    canonicalKey: 'docno',
+    xmlKey: 'docno',
+    jsonKey: 'documentNumber',
+    jsonRequestKey: 'docno',
+    sqlColumn: 'docno',
+    sqlType: 'string',
+    length: 210
+  },
+
+  {
+    canonicalKey: 'title',
+    xmlKey: 'title',
+    jsonKey: 'title',
+    jsonRequestKey: 'title',
+    sqlColumn: 'title',
+    sqlType: 'string',
+    length: 500
+  },
+
+  {
+    canonicalKey: 'doctype',
+    xmlKey: 'doctype',
+    jsonKey: 'documentType',
+    jsonRequestKey: 'doctype',
+    sqlColumn: 'doctype',
+    sqlType: 'string',
+    length: 200
+  },
+
+  {
+    canonicalKey: 'statusid',
+    xmlKey: 'statusid',
+    jsonKey: 'documentStatus',
+    jsonRequestKey: 'statusid',
+    sqlColumn: 'statusid',
+    sqlType: 'string',
+    length: 100
+  },
+
+  {
+    canonicalKey: 'revision',
+    xmlKey: 'revision',
+    jsonKey: 'revision',
+    jsonRequestKey: 'revision',
+    sqlColumn: 'revision',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'revisiondate',
+    xmlKey: 'revisiondate',
+    jsonKey: 'revisionDate',
+    jsonRequestKey: 'revisiondate',
+    sqlColumn: 'revisiondate',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'author',
+    xmlKey: 'author',
+    jsonKey: 'author',
+    jsonRequestKey: 'author',
+    sqlColumn: 'author',
+    sqlType: 'string',
+    length: 200
+  },
+
+  {
+    canonicalKey: 'category',
+    xmlKey: 'category',
+    jsonKey: 'category',
+    jsonRequestKey: 'category',
+    sqlColumn: 'category',
+    sqlType: 'string',
+    length: 200
+  },
+
+  {
+    canonicalKey: 'discipline',
+    xmlKey: 'discipline',
+    jsonKey: 'discipline',
+    jsonRequestKey: 'discipline',
+    sqlColumn: 'discipline',
+    sqlType: 'string',
+    length: 200
+  },
+
+  {
+    canonicalKey: 'filename',
+    xmlKey: 'filename',
+    jsonKey: 'filename',
+    jsonRequestKey: 'filename',
+    sqlColumn: 'filename',
+    sqlType: 'string',
+    length: 500
+  },
+
+  {
+    canonicalKey: 'fileSize',
+    xmlKey: 'fileSize',
+    jsonKey: 'fileSize',
+    jsonRequestKey: 'fileSize',
+    sqlColumn: 'fileSize',
+    sqlType: 'bigint'
+  },
+
+  {
+    canonicalKey: 'fileType',
+    xmlKey: 'fileType',
+    jsonKey: 'fileType',
+    jsonRequestKey: 'fileType',
+    sqlColumn: 'fileType',
+    sqlType: 'string',
+    length: 10
+  },
+
+  {
+    canonicalKey: 'confidential',
+    xmlKey: 'confidential',
+    jsonKey: 'confidential',
+    jsonRequestKey: 'confidential',
+    sqlColumn: 'confidential',
+    sqlType: 'boolean'
+  },
+
+  {
+    canonicalKey: 'current',
+    xmlKey: 'current',
+    jsonKey: 'current',
+    jsonRequestKey: 'current',
+    sqlColumn: 'current',
+    sqlType: 'boolean'
+  },
+
+  {
+    canonicalKey: 'comments',
+    xmlKey: 'comments',
+    jsonKey: 'comments',
+    jsonRequestKey: 'comments',
+    sqlColumn: 'comments',
+    sqlType: 'text'
+  },
+
+  {
+    canonicalKey: 'comments2',
+    xmlKey: 'comments2',
+    jsonKey: 'comments2',
+    jsonRequestKey: 'comments2',
+    sqlColumn: 'comments2',
+    sqlType: 'text'
+  },
+
+  {
+    canonicalKey: 'registered',
+    xmlKey: 'registered',
+    jsonKey: 'dateModified',
+    jsonRequestKey: 'registered',
+    sqlColumn: 'registered',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'received',
+    xmlKey: 'received',
+    jsonKey: 'dateCreated',
+    jsonRequestKey: 'received',
+    sqlColumn: 'received',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'reviewed',
+    xmlKey: 'reviewed',
+    jsonKey: 'dateReviewed',
+    jsonRequestKey: 'reviewed',
+    sqlColumn: 'reviewed',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'approved',
+    xmlKey: 'approved',
+    jsonKey: 'dateApproved',
+    jsonRequestKey: 'approved',
+    sqlColumn: 'approved',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'forreview',
+    xmlKey: 'forreview',
+    jsonKey: 'dateForReview',
+    jsonRequestKey: 'forreview',
+    sqlColumn: 'forreview',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'toclient',
+    xmlKey: 'toclient',
+    jsonKey: 'toClientDate',
+    jsonRequestKey: 'toclient',
+    sqlColumn: 'toclient',
+    sqlType: 'date'
+  },
+
+  {
+    canonicalKey: 'reference',
+    xmlKey: 'reference',
+    jsonKey: 'reference',
+    jsonRequestKey: 'reference',
+    sqlColumn: 'reference',
+    sqlType: 'string',
+    length: 120
+  },
+
+  {
+    canonicalKey: 'reviewSource',
+    xmlKey: 'reviewSource',
+    jsonKey: 'reviewSource',
+    jsonRequestKey: 'reviewSource',
+    sqlColumn: 'reviewSource',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'reviewstatus',
+    xmlKey: 'reviewstatus',
+    jsonKey: 'reviewStatus',
+    jsonRequestKey: 'reviewstatus',
+    sqlColumn: 'reviewstatus',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'packagenumber',
+    xmlKey: 'packagenumber',
+    jsonKey: 'packageNumber',
+    jsonRequestKey: 'packagenumber',
+    sqlColumn: 'packagenumber',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'contractnumber',
+    xmlKey: 'contractnumber',
+    jsonKey: 'contractNumber',
+    jsonRequestKey: 'contractnumber',
+    sqlColumn: 'contractnumber',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'vdrcode',
+    xmlKey: 'vdrcode',
+    jsonKey: 'vdrcode',
+    jsonRequestKey: 'vdrcode',
+    sqlColumn: 'vdrcode',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'trackingid',
+    xmlKey: 'trackingid',
+    jsonKey: 'trackingid',
+    jsonRequestKey: 'trackingid',
+    sqlColumn: 'trackingid',
+    sqlType: 'bigString',
+    length: 32
+  },
+
+  {
+    canonicalKey: 'versionnumber',
+    xmlKey: 'versionnumber',
+    jsonKey: 'versionNumber',
+    jsonRequestKey: 'versionnumber',
+    sqlColumn: 'versionnumber',
+    sqlType: 'integer'
+  },
+
+  {
+    canonicalKey: 'percentComplete',
+    xmlKey: 'percentComplete',
+    jsonKey: 'percentComplete',
+    jsonRequestKey: 'percentComplete',
+    sqlColumn: 'percentComplete',
+    sqlType: 'integer'
+  },
+
+  {
+    canonicalKey: 'tagNumber',
+    xmlKey: 'tagNumber',
+    jsonKey: 'tagNumber',
+    jsonRequestKey: 'tagNumber',
+    sqlColumn: 'tagNumber',
+    sqlType: 'string',
+    length: 50
+  },
+
+  {
+    canonicalKey: 'scale',
+    xmlKey: 'scale',
+    jsonKey: 'scale',
+    jsonRequestKey: 'scale',
+    sqlColumn: 'scale',
+    sqlType: 'string',
+    length: 9
+  },
+
+  {
+    canonicalKey: 'attribute1',
+    xmlKey: 'attribute1',
+    jsonKey: 'attribute1',
+    jsonRequestKey: 'attribute1',
+    sqlColumn: 'attribute1',
+    sqlType: 'text'
+  },
+
+  {
+    canonicalKey: 'attribute2',
+    xmlKey: 'attribute2',
+    jsonKey: 'attribute2',
+    jsonRequestKey: 'attribute2',
+    sqlColumn: 'attribute2',
+    sqlType: 'text'
+  },
+
+  {
+    canonicalKey: 'attribute3',
+    xmlKey: 'attribute3',
+    jsonKey: 'attribute3',
+    jsonRequestKey: 'attribute3',
+    sqlColumn: 'attribute3',
+    sqlType: 'text'
+  },
+
+  {
+    canonicalKey: 'attribute4',
+    xmlKey: 'attribute4',
+    jsonKey: 'attribute4',
+    jsonRequestKey: 'attribute4',
+    sqlColumn: 'attribute4',
+    sqlType: 'text'
+  },
+
+  {
+    canonicalKey: 'selectlist1',
+    xmlKey: 'selectlist1',
+    jsonKey: 'selectList1',
+    jsonRequestKey: 'selectlist1',
+    sqlColumn: 'selectlist1',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist2',
+    xmlKey: 'selectlist2',
+    jsonKey: 'selectList2',
+    jsonRequestKey: 'selectlist2',
+    sqlColumn: 'selectlist2',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist3',
+    xmlKey: 'selectlist3',
+    jsonKey: 'selectList3',
+    jsonRequestKey: 'selectlist3',
+    sqlColumn: 'selectlist3',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist4',
+    xmlKey: 'selectlist4',
+    jsonKey: 'selectList4',
+    jsonRequestKey: 'selectlist4',
+    sqlColumn: 'selectlist4',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist5',
+    xmlKey: 'selectlist5',
+    jsonKey: 'selectList5',
+    jsonRequestKey: 'selectlist5',
+    sqlColumn: 'selectlist5',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist6',
+    xmlKey: 'selectlist6',
+    jsonKey: 'selectList6',
+    jsonRequestKey: 'selectlist6',
+    sqlColumn: 'selectlist6',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist7',
+    xmlKey: 'selectlist7',
+    jsonKey: 'selectList7',
+    jsonRequestKey: 'selectlist7',
+    sqlColumn: 'selectlist7',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist8',
+    xmlKey: 'selectlist8',
+    jsonKey: 'selectList8',
+    jsonRequestKey: 'selectlist8',
+    sqlColumn: 'selectlist8',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist9',
+    xmlKey: 'selectlist9',
+    jsonKey: 'selectList9',
+    jsonRequestKey: 'selectlist9',
+    sqlColumn: 'selectlist9',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'selectlist10',
+    xmlKey: 'selectlist10',
+    jsonKey: 'selectList10',
+    jsonRequestKey: 'selectlist10',
+    sqlColumn: 'selectlist10',
+    sqlType: 'text',
+    length: 60
+  },
+
+  {
+    canonicalKey: 'projectField1',
+    xmlKey: 'projectField1',
+    jsonKey: 'projectField1',
+    jsonRequestKey: 'projectField1',
+    sqlColumn: 'projectField1',
+    sqlType: 'string',
+    length: 120
+  },
+
+  {
+    canonicalKey: 'projectField2',
+    xmlKey: 'projectField2',
+    jsonKey: 'projectField2',
+    jsonRequestKey: 'projectField2',
+    sqlColumn: 'projectField2',
+    sqlType: 'string',
+    length: 120
+  },
+
+  {
+    canonicalKey: 'projectField3',
+    xmlKey: 'projectField3',
+    jsonKey: 'projectField3',
+    jsonRequestKey: 'projectField3',
+    sqlColumn: 'projectField3',
+    sqlType: 'string',
+    length: 120
+  },
+
+  {
+    canonicalKey: 'projectid',
+    xmlKey: null,
+    jsonKey: null,
+    jsonRequestKey: null,
+    sqlColumn: 'projectid',
+    sqlType: 'string',
+    length: 50
+  },
+  {
+ canonicalKey:'approvalDate',
+ xmlKey:'approved',
+ jsonKey:'approvalDate',
+ jsonRequestKey:'approved',
+ sqlColumn:'approvalDate',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'authorisedBy',
+ xmlKey:'authorisedBy',
+ jsonKey:'authorisedBy',
+ jsonRequestKey:'authorisedBy',
+ sqlColumn:'authorisedBy',
+ sqlType:'string'
+},
+
+{
+ canonicalKey:'printSize',
+ xmlKey:'printSize',
+ jsonKey:'printSize',
+ jsonRequestKey:'printSize',
+ sqlColumn:'printSize',
+ sqlType:'string'
+},
+
+{
+ canonicalKey:'dateForReview',
+ xmlKey:'forreview',
+ jsonKey:'dateForReview',
+ jsonRequestKey:'forreview',
+ sqlColumn:'dateForReview',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'dateCreated',
+ xmlKey:'received',
+ jsonKey:'dateCreated',
+ jsonRequestKey:'received',
+ sqlColumn:'dateCreated',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'dateReviewed',
+ xmlKey:'reviewed',
+ jsonKey:'dateReviewed',
+ jsonRequestKey:'reviewed',
+ sqlColumn:'dateReviewed',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'toClientDate',
+ xmlKey:'toclient',
+ jsonKey:'toClientDate',
+ jsonRequestKey:'toclient',
+ sqlColumn:'toClientDate',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'noOfMarkups',
+ xmlKey:'numberOfMarkups',
+ jsonKey:'noOfMarkups',
+ jsonRequestKey:'numberOfMarkups',
+ sqlColumn:'noOfMarkups',
+ sqlType:'integer'
+},
+
+{
+ canonicalKey:'plannedSubmissionDate',
+ xmlKey:'plannedsubmissiondate',
+ jsonKey:'plannedSubmissionDate',
+ jsonRequestKey:'plannedsubmissiondate',
+ sqlColumn:'plannedSubmissionDate',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'milestoneDate',
+ xmlKey:'milestonedate',
+ jsonKey:'milestoneDate',
+ jsonRequestKey:'milestonedate',
+ sqlColumn:'milestoneDate',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'markupLastModifiedDate',
+ xmlKey:'markupLastModifiedDate',
+ jsonKey:'markupLastModifiedDate',
+ jsonRequestKey:'markupLastModifiedDate',
+ sqlColumn:'markupLastModifiedDate',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'asBuiltRequired',
+ xmlKey:'asBuiltRequired',
+ jsonKey:'asBuiltRequired',
+ jsonRequestKey:'asBuiltRequired',
+ sqlColumn:'asBuiltRequired',
+ sqlType:'boolean'
+},
+
+{
+ canonicalKey:'contractDeliverable',
+ xmlKey:'contractDeliverable',
+ jsonKey:'contractDeliverable',
+ jsonRequestKey:'contractDeliverable',
+ sqlColumn:'contractDeliverable',
+ sqlType:'boolean'
+},
+
+{
+ canonicalKey:'check1',
+ xmlKey:'check1',
+ jsonKey:'check1',
+ jsonRequestKey:'check1',
+ sqlColumn:'check1',
+ sqlType:'boolean'
+},
+
+{
+ canonicalKey:'check2',
+ xmlKey:'check2',
+ jsonKey:'check2',
+ jsonRequestKey:'check2',
+ sqlColumn:'check2',
+ sqlType:'boolean'
+},
+
+{
+ canonicalKey:'date1',
+ xmlKey:'date1',
+ jsonKey:'date1',
+ jsonRequestKey:'date1',
+ sqlColumn:'date1',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'date2',
+ xmlKey:'date2',
+ jsonKey:'date2',
+ jsonRequestKey:'date2',
+ sqlColumn:'date2',
+ sqlType:'date'
+},
+
+{
+ canonicalKey:'contractorDocumentNumber',
+ xmlKey:'contractordocumentnumber',
+ jsonKey:'contractorDocumentNumber',
+ jsonRequestKey:'contractordocumentnumber',
+ sqlColumn:'contractorDocumentNumber',
+ sqlType:'string'
+},
+
+{
+canonicalKey:'contractorRevision',
+xmlKey:'contractorrev',
+jsonKey:'contractorRevision',
+jsonRequestKey:'contractorrev',
+sqlColumn:'contractorRevision',
+sqlType:'string'
+},
+
+{
+canonicalKey:'vendorDocumentNumber',
+xmlKey:'vendordocumentnumber',
+jsonKey:'vendorDocumentNumber',
+jsonRequestKey:'vendordocumentnumber',
+sqlColumn:'vendorDocumentNumber',
+sqlType:'string'
+},
+
+{
+canonicalKey:'vendorRevision',
+xmlKey:'vendorrev',
+jsonKey:'vendorRevision',
+jsonRequestKey:'vendorrev',
+sqlColumn:'vendorRevision',
+sqlType:'string'
+},
+{
+    canonicalKey: 'ActivityCodeSwc_singleSelect',
+    xmlKey: null,
+    jsonKey: 'ActivityCodeSwc_singleSelect',
+    sqlColumn: 'ActivityCodeSwc_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'AreaCodeSubpbs_singleSelect',
+    xmlKey: null,
+    jsonKey: 'AreaCodeSubpbs_singleSelect',
+    sqlColumn: 'AreaCodeSubpbs_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'AreaCode_singleSelect',
+    xmlKey: null,
+    jsonKey: 'AreaCode_singleSelect',
+    sqlColumn: 'AreaCode_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'CwpCode_singleSelect',
+    xmlKey: null,
+    jsonKey: 'CwpCode_singleSelect',
+    sqlColumn: 'CwpCode_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'EnppiOriginator_singleSelect',
+    xmlKey: null,
+    jsonKey: 'EnppiOriginator_singleSelect',
+    sqlColumn: 'EnppiOriginator_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'EwpCode_singleSelect',
+    xmlKey: null,
+    jsonKey: 'EwpCode_singleSelect',
+    sqlColumn: 'EwpCode_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'IwpCode_singleSelect',
+    xmlKey: null,
+    jsonKey: 'IwpCode_singleSelect',
+    sqlColumn: 'IwpCode_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'OriginatorCode_singleSelect',
+    xmlKey: null,
+    jsonKey: 'OriginatorCode_singleSelect',
+    sqlColumn: 'OriginatorCode_singleSelect',
+    sqlType: 'string',
+    length: 100
+},
+
+{
+    canonicalKey: 'ProcessUnitCode_singleSelect',
+    xmlKey: null,
+    jsonKey: 'ProcessUnitCode_singleSelect',
+    sqlColumn: 'ProcessUnitCode_singleSelect',
+    sqlType: 'string',
+    length: 100
+}
 ];
 
 // Fast lookup helpers used by the two flatten functions and the DB model.
-const byXmlKey = Object.fromEntries(FIELD_MAP.map((f) => [f.xmlKey, f]));
-const byJsonKey = Object.fromEntries(FIELD_MAP.map((f) => [f.jsonKey, f]));
-const byCanonicalKey = Object.fromEntries(FIELD_MAP.map((f) => [f.canonicalKey, f]));
+const byXmlKey = Object.fromEntries(
+  FIELD_MAP
+    .filter(f => f.xmlKey)
+    .map(f => [f.xmlKey, f])
+);
+const byJsonKey = Object.fromEntries(
+  FIELD_MAP
+    .filter(f => f.jsonKey)
+    .map(f => [f.jsonKey, f])
+);
+const byCanonicalKey = Object.fromEntries(
+  FIELD_MAP
+    .filter(f => f.canonicalKey)
+    .map(f => [f.canonicalKey, f])
+);
 
 // ----------------------------------------------------------------------------
 // Cast a raw string/primitive value to the right JS type for its sqlType.

@@ -45,7 +45,7 @@
  */
 
 'use strict';
-
+require('./src/utils/logger');
 const { CONFIG, LOBBY_URL, USER_SITE, RESOURCE_SERVER } = require('./src/config');
 const { getAccessToken } = require('./src/auth/oauth');
 const { listProjects } = require('./src/api/projects');
@@ -55,6 +55,8 @@ const { getDocumentMetadata, getDocumentEventLog, flattenMetadata, flattenEventL
 const { exportKeyValueToXlsx, exportTableToXlsx } = require('./src/export/xlsxExporter');
 const { normalizeRow, selectConfiguredFields, byCanonicalKey } = require('./src/utils/fieldMap');
 const syncConfig = require('./aconex.config');
+
+
 
 // ----------------------------------------------------------------------------
 // MODE: 'sync' — fetch per config, normalize, write to xlsx and/or SQL
@@ -70,7 +72,7 @@ async function runSync(accessToken) {
   if (syncConfig.searchMode === 'allFilters') {
     const jsonReturnFields = syncConfig.fields
       .filter((k) => k !== 'documentId') // documentId ("id") is always returned, not requestable
-      .map((k) => byCanonicalKey[k]?.jsonKey)
+     .map((k) => byCanonicalKey[k]?.jsonRequestKey || byCanonicalKey[k]?.jsonKey)
       .filter(Boolean);
 
     rawRows = await searchAllDocumentsAllFilters(accessToken, {
@@ -91,7 +93,9 @@ async function runSync(accessToken) {
   }
 
   const canonicalRows = rawRows.map((r) => selectConfiguredFields(normalizeRow(r, keyKind), syncConfig.fields));
+
   console.log(`\n✔ Normalized ${canonicalRows.length} rows to the configured field set`);
+
 
   if (syncConfig.output.xlsx) {
     await exportTableToXlsx(canonicalRows, './document-register.xlsx', 'Document Register');

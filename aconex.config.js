@@ -58,7 +58,7 @@ module.exports = {
   //   'register'   -> GET /register  (simple, Lucene query string)
   //   'allFilters' -> POST /register/search (structured filters, JSON)
   // --------------------------------------------------------------------
-  searchMode: 'register',
+  searchMode: 'allFilters',
 
   // Settings used when searchMode = 'register'
   register: {
@@ -78,27 +78,104 @@ module.exports = {
   //   controls both the Excel columns AND the SQL table columns — add or
   //   remove a line here and both outputs update automatically.
   // --------------------------------------------------------------------
-  fields: [
-    'documentId',   // always keep this — it's the primary key in SQL
-    'docno',
-    'title',
-    'doctype',
-    'statusid',
-    'revision',
-    'revisiondate',
-    'author',
-    'category',
-    'discipline',
-    'filename',
-    'fileSize',
-    'confidential',
-    'current',
-    'registered',
-    'attribute1',
-    'attribute2',
-    'attribute3',
-    'attribute4',
-  ],
+ fields: [
+  "projectid",
+    "documentId",
+    "docno",
+    "title",
+    "doctype",
+    "statusid",
+    "revision",
+    "revisiondate",
+    "author",
+    "authorisedBy",
+    "category",
+    "discipline",
+    "filename",
+    "fileSize",
+    "fileType",
+    "confidential",
+    "current",
+
+    "comments",
+    "comments2",
+
+    "registered",
+    "received",
+    "reviewed",
+    "approved",
+    "forreview",
+    "toclient",
+
+    "reference",
+    "reviewSource",
+    "reviewstatus",
+
+    "packagenumber",
+    "contractnumber",
+
+    "contractorDocumentNumber",
+    "contractorRevision",
+
+    "vendorDocumentNumber",
+    "vendorRevision",
+
+    "vdrcode",
+
+    "trackingid",
+    "versionnumber",
+
+    "percentComplete",
+    "tagNumber",
+    "scale",
+
+    "attribute1",
+    "attribute2",
+    "attribute3",
+    "attribute4",
+
+    "selectlist1",
+    "selectlist2",
+    "selectlist3",
+    "selectlist4",
+    "selectlist5",
+    "selectlist6",
+    "selectlist7",
+    "selectlist8",
+    "selectlist9",
+    "selectlist10",
+
+    "projectField1",
+    "projectField2",
+    "projectField3",
+
+    "date1",
+    "date2",
+"ActivityCodeSwc_singleSelect",
+"AreaCodeSubpbs_singleSelect",
+"AreaCode_singleSelect",
+"CwpCode_singleSelect",
+"EnppiOriginator_singleSelect",
+"EwpCode_singleSelect",
+"IwpCode_singleSelect",
+"OriginatorCode_singleSelect",
+"ProcessUnitCode_singleSelect",
+
+    "markupLastModifiedDate",
+    "milestoneDate",
+
+    "noOfMarkups",
+
+    "plannedSubmissionDate",
+
+    "printSize",
+
+    "check1",
+    "check2",
+
+    "contractDeliverable",
+    "asBuiltRequired"
+],
 
   // --------------------------------------------------------------------
   // WHERE OUTPUT GOES (used when mode = 'sync') — toggle either or both
@@ -117,7 +194,7 @@ module.exports = {
   // --------------------------------------------------------------------
   schedule: {
     enabled: true,
-    intervalMinutes: 3,
+    intervalMinutes: 5,
   },
 
   // --------------------------------------------------------------------

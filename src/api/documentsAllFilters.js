@@ -27,10 +27,72 @@ const { CONFIG, RESOURCE_SERVER } = require('../config');
 // underlying field set as the GET /register endpoint's return_fields.
 // ----------------------------------------------------------------------------
 const DEFAULT_RETURN_FIELDS = [
-  'docno', 'title', 'doctype', 'discipline', 'statusid', 'revision', 'revisiondate',
-  'author', 'category', 'filename', 'fileSize', 'confidential', 'current',
-  'attribute1', 'attribute2', 'attribute3', 'attribute4',
-  'registered', 'received', 'reviewed', 'approved',
+ "docno",
+    "title",
+    "doctype",
+    "statusid",
+    "revision",
+    "revisiondate",
+    "author",
+    "authorisedBy",
+    "category",
+    "discipline",
+    "filename",
+    "fileSize",
+    "fileType",
+    "confidential",
+    "current",
+    "comments",
+    "comments2",
+    "registered",
+    "received",
+    "reviewed",
+    "approved",
+    "forreview",
+    "toclient",
+    "reference",
+    "reviewSource",
+    "reviewstatus",
+    "packagenumber",
+    "contractnumber",
+    "contractordocumentnumber",
+    "contractorrev",
+    "vendordocumentnumber",
+    "vendorrev",
+    "vdrcode",
+    "trackingid",
+    "versionnumber",
+    "percentComplete",
+    "tagNumber",
+    "scale",
+    "attribute1",
+    "attribute2",
+    "attribute3",
+    "attribute4",
+    "selectlist1",
+    "selectlist2",
+    "selectlist3",
+    "selectlist4",
+    "selectlist5",
+    "selectlist6",
+    "selectlist7",
+    "selectlist8",
+    "selectlist9",
+    "selectlist10",
+    "projectField1",
+    "projectField2",
+    "projectField3",
+    "date1",
+    "date2",
+    "markupLastModifiedDate",
+    "milestonedate",
+    "numberOfMarkups",
+    "plannedsubmissiondate",
+    "printSize",
+    "check1",
+    "check2",
+    "contractDeliverable",
+    "asBuiltRequired"
 ];
 
 // ----------------------------------------------------------------------------
@@ -39,21 +101,35 @@ const DEFAULT_RETURN_FIELDS = [
 // — joined into one cell, same treatment as the XML-based documents.js.
 // ----------------------------------------------------------------------------
 function flattenAllFiltersDocument(doc) {
-  const row = { documentId: doc.id };
 
-  for (const [key, value] of Object.entries(doc)) {
-    if (key === 'id') continue;
+  const row = {
+    documentId: String(doc.id),
+    projectid: process.env.ACONEX_PROJECT_ID
+  };
 
-    if (/^attribute[1-4]$/.test(key) && value && typeof value === 'object') {
-      const names = Array.isArray(value.attributeNames) ? value.attributeNames : [value.attributeNames];
-      row[key] = names.filter(Boolean).join('; ');
-    } else if (value !== null && typeof value === 'object') {
-      // e.g. transmittalDetails, or any other nested structure — keep the
-      // data rather than dropping it, just as a readable JSON string.
-      row[key] = JSON.stringify(value);
-    } else {
-      row[key] = value;
+  for (const [key,value] of Object.entries(doc)) {
+
+    if(key === 'id') continue;
+
+    if(/^attribute[1-4]$/.test(key) && value && typeof value === 'object'){
+        row[key] = value.attributeNames?.join('; ') || null;
     }
+   else {
+
+    if (key === 'trackingid') {
+        row[key] = String(value);
+    }
+   
+    else {
+        row[key] = value;
+    }
+     if (Array.isArray(doc.projectFields)) {
+    for (const pf of doc.projectFields) {
+        row[pf.name] = pf.value;
+    }
+}
+
+}
   }
 
   return row;
@@ -120,7 +196,10 @@ async function searchAllDocumentsAllFilters(accessToken, {
     const data = await searchDocumentsAllFilters(accessToken, { filters, returnFields, pageNumber, resultSize });
 
     totalPages = parseInt(data.totalNumberOfPages || '1', 10);
-    const rows = (data.searchResults || []).map(flattenAllFiltersDocument);
+  
+
+const rows = (data.searchResults || []).map(flattenAllFiltersDocument);
+
     allRows.push(...rows);
 
     console.log(`✔ Page ${pageNumber}/${totalPages} retrieved (${rows.length} documents, ${data.totalResultsCount} total)`);
