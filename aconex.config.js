@@ -151,15 +151,16 @@ module.exports = {
 
     "date1",
     "date2",
-"ActivityCodeSwc_singleSelect",
-"AreaCodeSubpbs_singleSelect",
-"AreaCode_singleSelect",
-"CwpCode_singleSelect",
-"EnppiOriginator_singleSelect",
-"EwpCode_singleSelect",
-"IwpCode_singleSelect",
-"OriginatorCode_singleSelect",
-"ProcessUnitCode_singleSelect",
+
+// "ActivityCodeSwc_singleSelect",
+// "AreaCodeSubpbs_singleSelect",
+// "AreaCode_singleSelect",
+// "CwpCode_singleSelect",
+// "EnppiOriginator_singleSelect",
+// "EwpCode_singleSelect",
+// "IwpCode_singleSelect",
+// "OriginatorCode_singleSelect",
+// "ProcessUnitCode_singleSelect",
 
     "markupLastModifiedDate",
     "milestoneDate",
@@ -193,7 +194,7 @@ module.exports = {
   //                     intervalMinutes, forever (until you stop it)
   // --------------------------------------------------------------------
   schedule: {
-    enabled: true,
+    enabled: false,
     intervalMinutes: 5,
   },
 

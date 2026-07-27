@@ -4,15 +4,8 @@ UPSERT TO SQL SERVER — via pyodbc, Windows Integrated Security
 ============================================================================
 Called by src/db/pythonUpsert.js. Reads a JSON file containing rows +
 column metadata (written by Node), connects to SQL Server using
-Trusted_Connection=yes (Windows Integrated Security — the same approach
-already proven working via a colleague's pyodbc/SQLAlchemy code on this
-machine), and upserts every row via a parameterized MERGE statement
-inside a transaction.
-
-USAGE (called automatically by Node, not meant to be run manually):
-  python upsert_to_sql.py --data-file <path> --server <server> \
-      --database <database> --schema <schema> --table <table> \
-      [--driver "ODBC Driver 17 for SQL Server"]
+Trusted_Connection=yes, upserts every row, then deletes rows that no
+longer exist in Aconex.
 ============================================================================
 """
 
@@ -34,82 +27,157 @@ def build_connection_string(server, database, driver):
 
 
 def build_merge_sql(schema, table, columns):
-    pk_column = next((c for c in columns if c["canonicalKey"] == "documentId"), None)
+    pk_column = next(
+        (c for c in columns if c["canonicalKey"] == "documentId"),
+        None,
+    )
+
     if pk_column is None:
         raise ValueError(
-            "aconex.config.js 'fields' must include 'documentId' — it is "
-            "required as the primary key for SQL upserts."
+            "aconex.config.js 'fields' must include 'documentId'."
         )
-    non_key_columns = [c for c in columns if c["canonicalKey"] != "documentId"]
+
+    non_key_columns = [
+        c for c in columns
+        if c["canonicalKey"] != "documentId"
+    ]
 
     set_clause = ", ".join(
-        f'target.[{c["column"]}] = source.[{c["column"]}]' for c in non_key_columns
+        f'target.[{c["column"]}] = source.[{c["column"]}]'
+        for c in non_key_columns
     )
-    insert_cols = ", ".join(f'[{c["column"]}]' for c in columns)
-    insert_vals = ", ".join(f'source.[{c["column"]}]' for c in columns)
-    # pyodbc uses positional "?" parameters, not named ones — the SELECT in
-    # the USING clause supplies them in the same order as `columns`.
-    source_select = ", ".join(f'? AS [{c["column"]}]' for c in columns)
 
-    merge_sql = f"""
-        MERGE [{schema}].[{table}] AS target
-        USING (SELECT {source_select}) AS source
-        ON target.[{pk_column["column"]}] = source.[{pk_column["column"]}]
-        WHEN MATCHED THEN UPDATE SET {set_clause}
-        WHEN NOT MATCHED THEN INSERT ({insert_cols}) VALUES ({insert_vals});
+    insert_cols = ", ".join(
+        f'[{c["column"]}]'
+        for c in columns
+    )
+
+    insert_vals = ", ".join(
+        f'source.[{c["column"]}]'
+        for c in columns
+    )
+
+    source_select = ", ".join(
+        f'? AS [{c["column"]}]'
+        for c in columns
+    )
+
+    return f"""
+MERGE [{schema}].[{table}] AS target
+USING (
+    SELECT {source_select}
+) AS source
+ON target.[{pk_column["column"]}] = source.[{pk_column["column"]}]
+
+WHEN MATCHED THEN
+    UPDATE SET
+        {set_clause}
+
+WHEN NOT MATCHED THEN
+    INSERT ({insert_cols})
+    VALUES ({insert_vals});
+"""
+
+
+def delete_removed_rows(cursor, schema, table, document_ids):
     """
-    return merge_sql
+    Delete rows that are no longer returned by the API.
+    """
+
+    if not document_ids:
+        cursor.execute(f"DELETE FROM [{schema}].[{table}]")
+        return 0
+
+    placeholders = ",".join("?" for _ in document_ids)
+
+    sql = f"""
+DELETE FROM [{schema}].[{table}]
+WHERE documentId NOT IN ({placeholders})
+"""
+
+    cursor.execute(sql, document_ids)
+
+    return cursor.rowcount
 
 
 def main():
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--data-file", required=True)
     parser.add_argument("--server", required=True)
     parser.add_argument("--database", required=True)
     parser.add_argument("--schema", required=True)
     parser.add_argument("--table", required=True)
-    parser.add_argument("--driver", default="ODBC Driver 17 for SQL Server")
+    parser.add_argument("--driver", default="ODBC Driver 18 for SQL Server")
+
     args = parser.parse_args()
 
     with open(args.data_file, "r", encoding="utf-8") as f:
         payload = json.load(f)
 
     rows = payload["rows"]
-    columns = payload["columns"]  # [{ canonicalKey, column }, ...]
+    columns = payload["columns"]
 
-    if not rows:
-        print("NO_ROWS")
-        return
+    conn = pyodbc.connect(
+        build_connection_string(
+            args.server,
+            args.database,
+            args.driver
+        ),
+        autocommit=False
+    )
 
-    merge_sql = build_merge_sql(args.schema, args.table, columns)
-    conn_str = build_connection_string(args.server, args.database, args.driver)
-
-    conn = pyodbc.connect(conn_str, autocommit=False)
     cursor = conn.cursor()
 
+    merge_sql = build_merge_sql(
+        args.schema,
+        args.table,
+        columns
+    )
+
     upserted = 0
+
     try:
+
+        document_ids = []
+
         for row in rows:
-            # Build params in the SAME order as `columns`, matching the
-            # positional "?" placeholders in the generated MERGE SQL.
-            params = [row.get(c["canonicalKey"]) for c in columns]
+
+            params = [
+                row.get(c["canonicalKey"])
+                for c in columns
+            ]
+
             cursor.execute(merge_sql, params)
+
             upserted += 1
 
+            document_ids.append(row["documentId"])
+
+        deleted = delete_removed_rows(
+            cursor,
+            args.schema,
+            args.table,
+            document_ids
+        )
+
         conn.commit()
+
     except Exception:
         conn.rollback()
         raise
+
     finally:
         cursor.close()
         conn.close()
 
     print(f"UPSERTED:{upserted}")
+    print(f"DELETED:{deleted}")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:  # noqa: BLE001 — deliberately broad: report any failure to Node clearly
+    except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
