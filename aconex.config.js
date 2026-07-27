@@ -203,7 +203,7 @@ module.exports = {
   // --------------------------------------------------------------------
   sql: {
     schema: 'dbo',
-    tableName: 'DocumentRegisterTest', // <-- confirm exact spelling with your manager
+    tableName: 'DocumentRegisterTest', // <-- confirm exact spelling 
 
     // Set to a real column name (e.g. 'LastSyncedAt') ONLY if the existing
     // table actually has a column for tracking sync time. Set to null/false

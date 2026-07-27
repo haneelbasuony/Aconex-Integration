@@ -6,7 +6,7 @@
  * statement per row, inside a transaction. This module NEVER issues
  * CREATE TABLE, ALTER TABLE, or DROP — it only reads column names/types
  * from aconex.config.js + fieldMap.js and writes row data. This is
- * deliberate: it's connecting to a table your manager already owns, so
+ * deliberate: it's connecting to a table you already own, so
  * the code is structurally incapable of changing that table's shape.
  *
  * Columns come from aconex.config.js's `fields` list, with real column

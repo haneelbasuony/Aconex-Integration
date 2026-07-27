@@ -94,7 +94,7 @@ filled in `.env` — no mode flag to set yourself:
 | `SQL_USER` set (no connection string) | `mssql` + `tedious` (SQL login) | No — pure JavaScript |
 | Neither set, `SQL_SERVER`/`SQL_DATABASE` filled in | Python + `pyodbc` (Windows auth) | No — and doesn't depend on PowerShell execution policy either |
 
-### If your manager gave you a Windows-auth connection string
+###  Windows-auth connection string
 
 This is **Windows Integrated Security** — no username/password, SQL Server
 trusts whichever Windows account is running the process (same as SSMS).
@@ -250,4 +250,4 @@ your real instance (currently defaults to `ksa1.aconex.com`).
   downloads/event logs unless you're on that document's access list.
 - Some documents are metadata-only placeholders with no backing file —
   downloading one returns `CANNOT_DOWNLOAD_EMPTY_DOCUMENT` (HTTP 400).
-# Aconex-Integration
+

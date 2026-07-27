@@ -12,7 +12,7 @@
  * TWO CONNECTION MODES (auto-detected from .env):
  *
  * 1. SQL_CONNECTION_STRING is set (RECOMMENDED for your setup):
- *    Paste your manager's exact connection string here. Uses
+ *    Paste your exact connection string here. Uses
  *    msnodesqlv8 — genuine Windows Integrated Security, no credentials
  *    needed in .env at all.
  *
