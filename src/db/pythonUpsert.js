@@ -1,20 +1,21 @@
 /**
  * ============================================================================
- * WINDOWS AUTH VIA PYTHON/PYODBC — no native Node compilation required
+ * WINDOWS AUTH VIA PYTHON/PYODBC
  * ============================================================================
- * Alternative to src/db/documentRegisterRepository.js (needs msnodesqlv8 to
- * compile) for machines where that isn't possible. Also an alternative to
- * the PowerShell-based approach, for machines where PowerShell's execution
- * policy blocks running scripts (a common company-managed-PC restriction).
  *
- * This uses the exact same approach already proven working on this
- * machine via a colleague's Python/pyodbc code: Trusted_Connection=yes,
- * ODBC Driver 17 for SQL Server. Node writes the row data to a temp JSON
- * file, then spawns scripts/upsert_to_sql.py to do the actual connection
- * + upsert.
+ * Handles:
  *
- * Used automatically (see src/db/sqlSync.js) when no SQL_CONNECTION_STRING
- * and no SQL_USER are set in .env, but SQL_SERVER/SQL_DATABASE are.
+ *   1. Document Register
+ *      scripts/upsert_to_sql.py
+ *
+ *   2. Workflow Register
+ *      scripts/workflow_upsert_to_sql.py
+ *
+ * Windows Integrated Authentication:
+ *
+ *      Trusted_Connection=yes
+ *
+ * No native Node SQL compilation required.
  * ============================================================================
  */
 
@@ -24,127 +25,487 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
 const { byCanonicalKey } = require('../utils/fieldMap');
 const config = require('../../aconex.config');
 
+
 function requireEnv(name) {
+
   const value = process.env[name];
+
   if (!value || !value.trim()) {
-    throw new Error(`Missing required .env value: ${name}. Copy .env.example to .env and fill it in.`);
+    throw new Error(
+      `Missing required .env value: ${name}.`
+    );
   }
+
   return value.trim();
 }
 
-// ----------------------------------------------------------------------------
-// Resolves aconex.config.js's `fields` list into { canonicalKey, column }
-// pairs, applying columnOverrides — same logic as the other SQL backends,
-// kept in sync so all of them produce identical SQL column mapping.
-// ----------------------------------------------------------------------------
+
+// ============================================================================
+// DOCUMENT COLUMNS
+// ============================================================================
+
 function getColumns() {
-  const overrides = config.columnOverrides || {};
+
+  const overrides =
+    config.columnOverrides || {};
+
   return config.fields
     .map((canonicalKey) => {
-      const field = byCanonicalKey[canonicalKey];
+
+      const field =
+        byCanonicalKey[canonicalKey];
+
       if (!field) {
-        console.warn(`⚠ aconex.config.js lists unknown field "${canonicalKey}" (not in fieldMap.js) — skipping.`);
+
+        console.warn(
+          `⚠ aconex.config.js lists unknown field "${canonicalKey}" — skipping.`
+        );
+
         return null;
       }
-      return { canonicalKey, column: overrides[canonicalKey] || field.sqlColumn };
+
+      return {
+        canonicalKey,
+        column:
+          overrides[canonicalKey] ||
+          field.sqlColumn
+      };
+
     })
     .filter(Boolean);
 }
 
+
+// ============================================================================
+// CONNECTION
+// ============================================================================
+
 async function verifyConnection() {
-  console.log('(Windows auth via Python/pyodbc — connection happens during upsert)');
+
+  console.log(
+    '(Windows auth via Python/pyodbc — connection happens during SQL operation)'
+  );
 }
 
-// The Python launcher command differs across Windows setups — 'python' is
-// most common when installed via python.org's installer (which is what a
-// colleague's already-working pyodbc setup implies is present here).
-const PYTHON_COMMAND = process.env.PYTHON_COMMAND || 'python';
 
-// ----------------------------------------------------------------------------
-// Writes rows + column metadata to a temp JSON file, then runs the Python
-// script to perform the actual upsert.
-// ----------------------------------------------------------------------------
+const PYTHON_COMMAND =
+  process.env.PYTHON_COMMAND || 'python';
+
+
+// ============================================================================
+// DOCUMENT REGISTER
+// ============================================================================
+
 async function upsertRows(rows) {
-  if (rows.length === 0) {
-    console.log('No rows to sync — skipping SQL upsert.');
-    return { upserted: 0 };
+
+  if (!rows.length) {
+
+    console.log(
+      'No document rows to sync — skipping SQL upsert.'
+    );
+
+    return {
+      upserted: 0,
+      deleted: 0
+    };
   }
 
-  const columns = getColumns();
-  const server = requireEnv('SQL_SERVER');
-  const database = requireEnv('SQL_DATABASE');
-  const driver = process.env.SQL_ODBC_DRIVER || 'ODBC Driver 17 for SQL Server';
-  const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'upsert_to_sql.py');
+
+  const columns =
+    getColumns();
+
+  const server =
+    requireEnv('SQL_SERVER');
+
+  const database =
+    requireEnv('SQL_DATABASE');
+
+  const driver =
+    process.env.SQL_ODBC_DRIVER ||
+    'ODBC Driver 17 for SQL Server';
+
+  const scriptPath =
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'upsert_to_sql.py'
+    );
+
 
   if (!fs.existsSync(scriptPath)) {
-    throw new Error(`Python upsert script not found at ${scriptPath} — did scripts/upsert_to_sql.py get included in this project copy?`);
+
+    throw new Error(
+      `Python upsert script not found at ${scriptPath}`
+    );
   }
 
-  const tmpFile = path.join(os.tmpdir(), `aconex-sync-${Date.now()}-${process.pid}.json`);
-  const projectId = requireEnv('ACONEX_PROJECT_ID');
+
+  const tmpFile =
+    path.join(
+      os.tmpdir(),
+      `aconex-sync-${Date.now()}-${process.pid}.json`
+    );
+
+
+  const projectId =
+    requireEnv('ACONEX_PROJECT_ID');
+
 
   rows = rows.map(row => ({
-  projectid: projectId,
-  ...row
+    projectid: projectId,
+    ...row
   }));
-  
-  fs.writeFileSync(tmpFile, JSON.stringify({ rows, columns }));
 
-  console.log(`Handing off ${rows.length} rows to Python (${scriptPath}) for upsert via pyodbc...`);
+
+  fs.writeFileSync(
+    tmpFile,
+    JSON.stringify({
+      rows,
+      columns
+    })
+  );
+
+
+  console.log(
+    `Handing off ${rows.length} document rows to Python (${scriptPath})...`
+  );
+
 
   return new Promise((resolve, reject) => {
+
     execFile(
       PYTHON_COMMAND,
       [
         scriptPath,
-        '--data-file', tmpFile,
-        '--server', server,
-        '--database', database,
-        '--schema', config.sql.schema,
-        '--table', config.sql.tableName,
-        '--driver', driver,
+
+        '--data-file',
+        tmpFile,
+
+        '--server',
+        server,
+
+        '--database',
+        database,
+
+        '--schema',
+        config.sql.schema,
+
+        '--table',
+        config.sql.tableName,
+
+        '--driver',
+        driver
       ],
-      { maxBuffer: 1024 * 1024 * 50 },
+      {
+        maxBuffer: 1024 * 1024 * 50
+      },
+
       (err, stdout, stderr) => {
-        fs.unlink(tmpFile, () => {}); // best-effort cleanup
 
-          if (stdout) {
-            console.log(stdout);
-          }
+        fs.unlink(
+          tmpFile,
+          () => {}
+        );
 
-          if (stderr) {
-            console.error(stderr);
-          }
+
+        if (stdout) {
+          console.log(stdout);
+        }
+
+
+        if (stderr) {
+          console.error(stderr);
+        }
+
+
         if (err) {
-          reject(new Error(`Python upsert failed: ${(stderr || err.message).trim()}`));
+
+          reject(
+            new Error(
+              `Python document upsert failed: ${
+                (stderr || err.message).trim()
+              }`
+            )
+          );
+
           return;
         }
 
-        if (/^NO_ROWS/m.test(stdout)) {
-          console.log('✔ Python reported no rows to upsert.');
-          resolve({ upserted: 0 });
-          return;
-        }
 
-        const match = stdout.match(/UPSERTED:(\d+)/);
-        const upserted = match ? parseInt(match[1], 10) : 0;
-        console.log(`✔ Upserted ${upserted} rows into ${config.sql.schema}.${config.sql.tableName} (via Python/pyodbc, Windows auth)`);
-        resolve({ upserted });
+        const upsertMatch =
+          stdout.match(
+            /UPSERTED:(\d+)/
+          );
+
+        const deleteMatch =
+          stdout.match(
+            /DELETED:(\d+)/
+          );
+
+
+        const upserted =
+          upsertMatch
+            ? parseInt(upsertMatch[1], 10)
+            : 0;
+
+        const deleted =
+          deleteMatch
+            ? parseInt(deleteMatch[1], 10)
+            : 0;
+
+
+        console.log(
+          `✔ Upserted ${upserted} document rows`
+        );
+
+        console.log(
+          `✔ Deleted ${deleted} document rows`
+        );
+
+
+        resolve({
+          upserted,
+          deleted
+        });
       }
     );
   });
 }
 
+
+// ============================================================================
+// WORKFLOW REGISTER
+// ============================================================================
+
+async function syncWorkflowRowsToSql(rows) {
+
+  if (!rows || rows.length === 0) {
+
+    console.log(
+      'No workflow rows to sync — skipping SQL operation.'
+    );
+
+    return {
+      upserted: 0,
+      deleted: 0
+    };
+  }
+
+
+  const server =
+    requireEnv('SQL_SERVER');
+
+  const database =
+    requireEnv('SQL_DATABASE');
+
+  const driver =
+    process.env.SQL_ODBC_DRIVER ||
+    'ODBC Driver 17 for SQL Server';
+
+
+  const scriptPath =
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'workflow_upsert_to_sql.py'
+    );
+
+
+  if (!fs.existsSync(scriptPath)) {
+
+    throw new Error(
+      `Workflow Python script not found at ${scriptPath}`
+    );
+  }
+
+
+  const tmpFile =
+    path.join(
+      os.tmpdir(),
+      `aconex-workflow-${Date.now()}-${process.pid}.json`
+    );
+
+
+  /*
+   * The parser already adds projectId.
+   *
+   * Do NOT use ACONEX_PROJECT_ID to overwrite it here.
+   *
+   * This keeps the workflow rows tied to the actual project
+   * returned/used by the Workflow API.
+   */
+
+  const workflowRows =
+    rows.map(row => ({
+      ...row
+    }));
+
+
+  fs.writeFileSync(
+    tmpFile,
+    JSON.stringify({
+      rows: workflowRows
+    })
+  );
+
+
+  console.log(
+    `Handing off ${workflowRows.length} workflow rows to Python (${scriptPath})...`
+  );
+
+
+  return new Promise((resolve, reject) => {
+
+    execFile(
+      PYTHON_COMMAND,
+      [
+        scriptPath,
+
+        '--data-file',
+        tmpFile,
+
+        '--server',
+        server,
+
+        '--database',
+        database,
+
+        '--schema',
+        config.sql.schema,
+
+        '--table',
+        config.sql.workflowTableName,
+
+        '--driver',
+        driver
+      ],
+      {
+        maxBuffer: 1024 * 1024 * 50
+      },
+
+      (err, stdout, stderr) => {
+
+        fs.unlink(
+          tmpFile,
+          () => {}
+        );
+
+
+        if (stdout) {
+          console.log(stdout);
+        }
+
+
+        if (stderr) {
+          console.error(stderr);
+        }
+
+
+        if (err) {
+
+          reject(
+            new Error(
+              `Python workflow upsert failed: ${
+                (stderr || err.message).trim()
+              }`
+            )
+          );
+
+          return;
+        }
+
+
+        const upsertMatch =
+          stdout.match(
+            /UPSERTED:(\d+)/
+          );
+
+        const deleteMatch =
+          stdout.match(
+            /DELETED:(\d+)/
+          );
+
+
+        const upserted =
+          upsertMatch
+            ? parseInt(upsertMatch[1], 10)
+            : 0;
+
+        const deleted =
+          deleteMatch
+            ? parseInt(deleteMatch[1], 10)
+            : 0;
+
+
+        console.log(
+          `✔ Upserted ${upserted} workflow rows into ${config.sql.schema}.${config.sql.workflowTableName}`
+        );
+
+        console.log(
+          `✔ Deleted ${deleted} workflow rows`
+        );
+
+
+        resolve({
+          upserted,
+          deleted
+        });
+      }
+    );
+  });
+}
+
+
+// ============================================================================
+// EXISTING DOCUMENT API
+// ============================================================================
+
 async function syncRowsToSql(rows) {
+
   await verifyConnection();
+
   return upsertRows(rows);
 }
 
+
+// ============================================================================
+// CONNECTION CLOSE
+// ============================================================================
+
 async function closeConnection() {
-  // Nothing to close — each Python invocation manages its own connection.
+
+  /*
+   * Nothing to close.
+   *
+   * Every Python process opens and closes its own pyodbc connection.
+   */
 }
 
-module.exports = { verifyConnection, upsertRows, syncRowsToSql, closeConnection, getColumns };
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+module.exports = {
+
+  verifyConnection,
+
+  upsertRows,
+
+  syncRowsToSql,
+
+  syncWorkflowRowsToSql,
+
+  closeConnection,
+
+  getColumns
+
+};

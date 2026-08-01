@@ -34,7 +34,10 @@ function getBackend() {
     return require('./documentRegisterRepository');
   }
 
-  console.log('No SQL_CONNECTION_STRING or SQL_USER set — using Python/pyodbc Windows auth fallback (no native compilation required).');
+  console.log(
+    'No SQL_CONNECTION_STRING or SQL_USER set — using Python/pyodbc Windows auth fallback (no native compilation required).'
+  );
+
   return require('./pythonUpsert');
 }
 

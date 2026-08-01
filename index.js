@@ -1,221 +1,616 @@
-/**
- * ============================================================================
- *  ACONEX DOCUMENTS API CLIENT — User-Bound Integration (Lobby OAuth 2.0)
- *  Configured for the EARLY ACCESS (EA1) testing environment
- * ============================================================================
- *
- * EVERYTHING IS CONTROLLED BY aconex.config.js — NOT COMMAND-LINE FLAGS
- * -------------------------------------------------------------------------
- * Just run:
- *   node index.js
- *
- * What it actually does depends entirely on aconex.config.js's `mode`:
- *   'sync'           -> fetch documents, write to Excel and/or SQL Server
- *   'listProjects'    -> print available EA1 projects (find your project ID)
- *   'documentLookup'  -> fetch metadata + event log for one document
- *
- * And whether it runs once or repeats forever depends on
- * aconex.config.js's `schedule.enabled` — set that to true with
- * intervalMinutes: 30 for automatic recurring sync.
- *
- * PROJECT STRUCTURE
- * -------------------
- *   index.js                     <- you are here (orchestration + scheduler)
- *   aconex.config.js             <- the ONE file to edit to change behavior
- *   src/config.js                <- .env loading + derived URLs
- *   src/httpClient.js             <- shared auth header helper
- *   src/auth/oauth.js             <- Lobby OAuth token request
- *   src/api/projects.js           <- List Projects
- *   src/api/documents.js          <- List Documents (XML-based)
- *   src/api/documentsAllFilters.js <- All Filters List Documents (JSON-based)
- *   src/api/documentDetails.js    <- Metadata / Event Log / Download File
- *   src/export/xlsxExporter.js    <- writes rows to .xlsx
- *   src/db/mssqlConnection.js     <- MSSQL connection (Windows auth or SQL login)
- *   src/db/documentRegisterRepository.js <- upsert logic
- *   src/utils/xml.js              <- shared XML parser
- *   src/utils/fieldMap.js         <- canonical field dictionary (XML/JSON/SQL names)
- *
- * INSTALL & RUN
- * ---------------
- *   npm install
- *   cp .env.example .env      (then edit .env with your real credentials)
- *   Edit aconex.config.js to set `mode` and everything else
- *   node index.js
- * ============================================================================
- */
-
 'use strict';
+
 require('./src/utils/logger');
-const { CONFIG, LOBBY_URL, USER_SITE, RESOURCE_SERVER } = require('./src/config');
+
+const {
+  CONFIG,
+  LOBBY_URL,
+  USER_SITE,
+  RESOURCE_SERVER
+} = require('./src/config');
+
 const { getAccessToken } = require('./src/auth/oauth');
+
 const { listProjects } = require('./src/api/projects');
-const { listAllDocuments } = require('./src/api/documents');
-const { searchAllDocumentsAllFilters } = require('./src/api/documentsAllFilters');
-const { getDocumentMetadata, getDocumentEventLog, flattenMetadata, flattenEventLog } = require('./src/api/documentDetails');
-const { exportKeyValueToXlsx, exportTableToXlsx } = require('./src/export/xlsxExporter');
-const { normalizeRow, selectConfiguredFields, byCanonicalKey } = require('./src/utils/fieldMap');
+
+const {
+  listAllDocuments
+} = require('./src/api/documents');
+
+const {
+  searchAllDocumentsAllFilters
+} = require('./src/api/documentsAllFilters');
+
+const {
+  getDocumentMetadata,
+  getDocumentEventLog,
+  flattenMetadata,
+  flattenEventLog
+} = require('./src/api/documentDetails');
+
+const {
+  listAllWorkflows
+} = require('./src/api/workflow');
+
+const {
+  parseWorkflowPages
+} = require('./src/utils/workflowParser');
+
+const {
+  exportKeyValueToXlsx,
+  exportTableToXlsx
+} = require('./src/export/xlsxExporter');
+
+const {
+  normalizeRow,
+  selectConfiguredFields,
+  byCanonicalKey
+} = require('./src/utils/fieldMap');
+
 const syncConfig = require('./aconex.config');
 
 
+// ============================================================================
+// DOCUMENT SYNC
+// ============================================================================
 
-// ----------------------------------------------------------------------------
-// MODE: 'sync' — fetch per config, normalize, write to xlsx and/or SQL
-// ----------------------------------------------------------------------------
-async function runSync(accessToken) {
-  console.log(`Sync mode — searchMode: "${syncConfig.searchMode}"`);
+async function runDocumentSync(accessToken) {
+
+  console.log('\n============================================');
+  console.log('DOCUMENT REGISTER SYNC');
+  console.log('============================================\n');
+
+  console.log(`Search mode: "${syncConfig.searchMode}"`);
   console.log(`Fields: ${syncConfig.fields.join(', ')}`);
-  console.log(`Output: xlsx=${syncConfig.output.xlsx}, sql=${syncConfig.output.sql}\n`);
+  console.log(
+    `Output: xlsx=${syncConfig.output.xlsx}, sql=${syncConfig.output.sql}`
+  );
+  console.log('');
 
   let rawRows;
   let keyKind;
 
+  // --------------------------------------------------------------------------
+  // ALL FILTERS
+  // --------------------------------------------------------------------------
+
   if (syncConfig.searchMode === 'allFilters') {
+
     const jsonReturnFields = syncConfig.fields
-      .filter((k) => k !== 'documentId') // documentId ("id") is always returned, not requestable
-     .map((k) => byCanonicalKey[k]?.jsonRequestKey || byCanonicalKey[k]?.jsonKey)
+      .filter((k) => k !== 'documentId')
+      .map(
+        (k) =>
+          byCanonicalKey[k]?.jsonRequestKey ||
+          byCanonicalKey[k]?.jsonKey
+      )
       .filter(Boolean);
 
     rawRows = await searchAllDocumentsAllFilters(accessToken, {
+
       filters: syncConfig.allFilters.filters,
+
       returnFields: jsonReturnFields,
-      resultSize: syncConfig.allFilters.resultSize,
+
+      resultSize: syncConfig.allFilters.resultSize
     });
+
     keyKind = 'json';
-  } else {
-    const xmlReturnFields = syncConfig.fields.filter((k) => k !== 'documentId');
+
+  }
+
+  // --------------------------------------------------------------------------
+  // XML REGISTER
+  // --------------------------------------------------------------------------
+
+  else {
+
+    const xmlReturnFields =
+      syncConfig.fields.filter((k) => k !== 'documentId');
 
     rawRows = await listAllDocuments(accessToken, {
+
       searchQuery: syncConfig.register.searchQuery,
+
       pageSize: syncConfig.register.pageSize,
-      returnFields: xmlReturnFields,
+
+      returnFields: xmlReturnFields
     });
+
     keyKind = 'xml';
   }
 
-  const canonicalRows = rawRows.map((r) => selectConfiguredFields(normalizeRow(r, keyKind), syncConfig.fields));
 
-  console.log(`\n✔ Normalized ${canonicalRows.length} rows to the configured field set`);
+  // --------------------------------------------------------------------------
+  // NORMALIZE
+  // --------------------------------------------------------------------------
 
+  const canonicalRows = rawRows.map((row) => {
+
+    const normalized =
+      normalizeRow(row, keyKind);
+
+    return selectConfiguredFields(
+      normalized,
+      syncConfig.fields
+    );
+  });
+
+
+  console.log(
+    `\n✔ Normalized ${canonicalRows.length} document rows`
+  );
+
+
+  // --------------------------------------------------------------------------
+  // EXCEL
+  // --------------------------------------------------------------------------
 
   if (syncConfig.output.xlsx) {
-    await exportTableToXlsx(canonicalRows, './document-register.xlsx', 'Document Register');
+
+    await exportTableToXlsx(
+      canonicalRows,
+      './document-register.xlsx',
+      'Document Register'
+    );
   }
+
+
+  // --------------------------------------------------------------------------
+  // SQL
+  // --------------------------------------------------------------------------
 
   if (syncConfig.output.sql) {
-    // Lazy require so the mssql/msnodesqlv8 packages are only touched when
-    // SQL output is actually enabled.
-    // Lazy require + dispatch so the mssql/msnodesqlv8/Python paths are
-    // only touched when SQL output is actually enabled, and the right
-    // backend is chosen automatically based on what's set in .env.
-    const { getBackend } = require('./src/db/sqlSync');
-    const { syncRowsToSql, closeConnection } = getBackend();
-    await syncRowsToSql(canonicalRows);
-    await closeConnection();
+
+    const { getBackend } =
+      require('./src/db/sqlSync');
+
+    const {
+      syncRowsToSql,
+      closeConnection
+    } = getBackend();
+
+    try {
+
+      await syncRowsToSql(canonicalRows);
+
+    } finally {
+
+      await closeConnection();
+
+    }
   }
+
+
+  console.log(
+    `✔ Document Register sync completed: ${canonicalRows.length} rows`
+  );
 }
 
-// ----------------------------------------------------------------------------
-// MODE: 'listProjects'
-// ----------------------------------------------------------------------------
-async function runListProjects(accessToken) {
-  const projects = await listProjects(accessToken);
-  console.log('\n--- Your available EA1 projects ---');
-  projects.forEach((p) => console.log(`${p.projectId}   ${p.projectName}`));
-  console.log('\nCopy the projectId you want into ACONEX_PROJECT_ID in your .env file.');
-}
 
-// ----------------------------------------------------------------------------
-// MODE: 'documentLookup'
-// ----------------------------------------------------------------------------
-async function runDocumentLookup(accessToken) {
-  const documentId = syncConfig.documentLookup.documentId;
-  if (!documentId) {
-    console.error('✖ aconex.config.js: documentLookup.documentId is empty — set a real document ID first.');
+// ============================================================================
+// WORKFLOW SYNC
+// ============================================================================
+
+async function runWorkflowSync(accessToken) {
+
+  console.log('\n============================================');
+  console.log('WORKFLOW SYNC');
+  console.log('============================================\n');
+
+
+  const projectId =
+    CONFIG.projectId ||
+    process.env.ACONEX_PROJECT_ID;
+
+
+  if (!projectId) {
+
+    throw new Error(
+      'No ACONEX project ID configured for Workflow API.'
+    );
+  }
+
+
+  console.log(
+    `Project ID: ${projectId}`
+  );
+
+  console.log(
+    'Fetching workflows...'
+  );
+
+
+  // --------------------------------------------------------------------------
+  // GET ALL WORKFLOW PAGES
+  // --------------------------------------------------------------------------
+
+  const workflowXmlPages =
+    await listAllWorkflows(
+      accessToken,
+      {
+        projectId,
+        pageSize: 1000
+      }
+    );
+
+
+  // --------------------------------------------------------------------------
+  // XML -> SQL-READY ROWS
+  // --------------------------------------------------------------------------
+
+  const workflowRows =
+    await parseWorkflowPages(
+      workflowXmlPages,
+      projectId
+    );
+
+
+  // if (workflowRows.length > 0) {
+
+  //   console.log('\n--- FIRST PARSED WORKFLOW ---');
+
+  //   console.log(
+  //     JSON.stringify(
+  //       workflowRows[0],
+  //       null,
+  //       2
+  //     )
+  //   );
+
+  //   console.log('\n--- WORKFLOW KEYS ---');
+
+  //   console.log(
+  //     Object.keys(
+  //       workflowRows[0]
+  //     )
+  //   );
+
+  //   console.log('-----------------------------\n');
+  // }
+
+
+  console.log(
+    `✔ Parsed ${workflowRows.length} workflow rows`
+  );
+
+
+  if (!workflowRows.length) {
+
+    console.log(
+      '⚠ No workflow records returned.'
+    );
+
     return;
   }
 
-  console.log(`Fetching metadata + event log for document ${documentId} only...\n`);
 
-  const metadataXml = await getDocumentMetadata(accessToken, documentId);
-  const metadataRow = flattenMetadata(metadataXml);
-  await exportKeyValueToXlsx(metadataRow, `./document-${documentId}-metadata.xlsx`, 'Metadata');
+  // --------------------------------------------------------------------------
+  // SQL
+  // --------------------------------------------------------------------------
 
-  const eventLogXml = await getDocumentEventLog(accessToken, documentId);
-  const eventRows = flattenEventLog(eventLogXml);
-  await exportTableToXlsx(eventRows, `./document-${documentId}-eventlog.xlsx`, 'Event Log');
+  if (syncConfig.output.sql) {
+
+    const {
+      syncWorkflowRowsToSql
+    } =
+      require('./src/db/workflowRegisterRepository');
+
+
+    console.log(
+      `Syncing ${workflowRows.length} workflow rows to ${syncConfig.sql.schema}.${syncConfig.sql.workflowTableName}...`
+    );
+
+
+    await syncWorkflowRowsToSql(
+      workflowRows
+    );
+  }
+
+
+  // --------------------------------------------------------------------------
+  // EXCEL
+  // --------------------------------------------------------------------------
+
+  if (syncConfig.output.xlsx) {
+
+    await exportTableToXlsx(
+      workflowRows,
+      './workflow-register.xlsx',
+      'Workflow Register'
+    );
+  }
+
+
+  console.log(
+    `✔ Workflow Register sync completed: ${workflowRows.length} rows`
+  );
 }
 
-// ----------------------------------------------------------------------------
-// One full run: authenticate, then dispatch to whichever mode is configured.
-// ----------------------------------------------------------------------------
-async function runOnce() {
-  console.log(`Environment: ${CONFIG.useEarlyAccess ? 'EARLY ACCESS (EA1)' : 'PRODUCTION'}`);
-  console.log(`Lobby: ${LOBBY_URL}`);
-  console.log(`Resource Server: ${RESOURCE_SERVER}`);
-  console.log(`user_site: ${USER_SITE}\n`);
 
-  const accessToken = await getAccessToken();
+// ============================================================================
+// LIST PROJECTS
+// ============================================================================
+
+async function runListProjects(accessToken) {
+
+  const projects =
+    await listProjects(accessToken);
+
+  console.log('\n--- Your available EA1 projects ---');
+
+  projects.forEach((p) =>
+    console.log(
+      `${p.projectId}   ${p.projectName}`
+    )
+  );
+
+  console.log(
+    '\nCopy the projectId you want into ACONEX_PROJECT_ID in your .env file.'
+  );
+}
+
+
+// ============================================================================
+// DOCUMENT LOOKUP
+// ============================================================================
+
+async function runDocumentLookup(accessToken) {
+
+  const documentId =
+    syncConfig.documentLookup.documentId;
+
+  if (!documentId) {
+
+    console.error(
+      '✖ aconex.config.js: documentLookup.documentId is empty.'
+    );
+
+    return;
+  }
+
+
+  console.log(
+    `Fetching metadata + event log for document ${documentId} only...\n`
+  );
+
+
+  const metadataXml =
+    await getDocumentMetadata(
+      accessToken,
+      documentId
+    );
+
+  const metadataRow =
+    flattenMetadata(metadataXml);
+
+
+  await exportKeyValueToXlsx(
+    metadataRow,
+    `./document-${documentId}-metadata.xlsx`,
+    'Metadata'
+  );
+
+
+  const eventLogXml =
+    await getDocumentEventLog(
+      accessToken,
+      documentId
+    );
+
+  const eventRows =
+    flattenEventLog(eventLogXml);
+
+
+  await exportTableToXlsx(
+    eventRows,
+    `./document-${documentId}-eventlog.xlsx`,
+    'Event Log'
+  );
+}
+
+
+// ============================================================================
+// ONE COMPLETE RUN
+// ============================================================================
+
+async function runOnce() {
+
+  console.log(
+    `Environment: ${
+      CONFIG.useEarlyAccess
+        ? 'EARLY ACCESS (EA1)'
+        : 'PRODUCTION'
+    }`
+  );
+
+  console.log(
+    `Lobby: ${LOBBY_URL}`
+  );
+
+  console.log(
+    `Resource Server: ${RESOURCE_SERVER}`
+  );
+
+  console.log(
+    `user_site: ${USER_SITE}\n`
+  );
+
+
+  // ONE TOKEN FOR THE ENTIRE EXECUTION
+  const accessToken =
+    await getAccessToken();
+
 
   switch (syncConfig.mode) {
+
     case 'sync':
-      return runSync(accessToken);
+
+      // ------------------------------------------------------------
+      // 1. DOCUMENT REGISTER
+      // ------------------------------------------------------------
+
+      await runDocumentSync(
+        accessToken
+      );
+
+
+      // ------------------------------------------------------------
+      // 2. WORKFLOW REGISTER
+      // ------------------------------------------------------------
+
+      await runWorkflowSync(
+        accessToken
+      );
+
+
+      break;
+
+
     case 'listProjects':
-      return runListProjects(accessToken);
+
+      await runListProjects(
+        accessToken
+      );
+
+      break;
+
+
     case 'documentLookup':
-      return runDocumentLookup(accessToken);
+
+      await runDocumentLookup(
+        accessToken
+      );
+
+      break;
+
+
     default:
-      throw new Error(`aconex.config.js: unknown mode "${syncConfig.mode}". Expected 'sync', 'listProjects', or 'documentLookup'.`);
+
+      throw new Error(
+        `aconex.config.js: unknown mode "${syncConfig.mode}".`
+      );
   }
 }
 
-// ----------------------------------------------------------------------------
-// MAIN — runs once, or repeats on a schedule per aconex.config.js
-// ----------------------------------------------------------------------------
+
+// ============================================================================
+// RUN GUARD
+// ============================================================================
+
 let isRunInProgress = false;
 
+
 async function runOnceGuarded(label) {
+
   if (isRunInProgress) {
-    console.log(`⏭ [${label}] Previous run is still in progress — skipping this cycle to avoid overlap.`);
+
+    console.log(
+      `⏭ [${label}] Previous run is still in progress — skipping this cycle.`
+    );
+
     return;
   }
+
+
   isRunInProgress = true;
+
+
   try {
+
     await runOnce();
-  } catch (err) {
+
+    console.log(
+      `\n✔ [${label}] Complete Aconex synchronization finished successfully.`
+    );
+
+  }
+
+  catch (err) {
+
     if (err.response) {
-      console.error(`✖ [${label}] API error (${err.response.status}):`, err.response.data);
+
+      console.error(
+        `✖ [${label}] API error (${err.response.status}):`,
+        err.response.data
+      );
+
     } else {
-      console.error(`✖ [${label}] Error:`, err.message);
+
+      console.error(
+        `✖ [${label}] Error:`,
+        err.message
+      );
     }
-  } finally {
+
+  }
+
+  finally {
+
     isRunInProgress = false;
   }
 }
 
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
 async function main() {
-  if (!syncConfig.schedule || !syncConfig.schedule.enabled) {
-    // Run once and exit — the normal case, and what you want if Windows
-    // Task Scheduler (or similar) is the thing calling this every 30 min.
-    await runOnceGuarded('single run');
+
+  if (
+    !syncConfig.schedule ||
+    !syncConfig.schedule.enabled
+  ) {
+
+    await runOnceGuarded(
+      'single run'
+    );
+
     return;
   }
 
-  // Scheduled mode: stays running and repeats forever. Useful if you'd
-  // rather this script manage its own timing instead of Task Scheduler.
-  const cron = require('node-cron');
-  const minutes = syncConfig.schedule.intervalMinutes || 30;
-  const cronExpression = `*/${minutes} * * * *`;
 
-  console.log(`Scheduling enabled — will run every ${minutes} minute(s) (cron: "${cronExpression}").`);
-  console.log('Running first sync immediately, then on schedule. Press Ctrl+C to stop.\n');
+  const cron =
+    require('node-cron');
 
-  await runOnceGuarded('initial run');
+  const minutes =
+    syncConfig.schedule.intervalMinutes || 30;
 
-  cron.schedule(cronExpression, () => {
-    const timestamp = new Date().toISOString();
-    console.log(`\n===== Scheduled run starting at ${timestamp} =====`);
-    runOnceGuarded(timestamp);
-  });
+  const cronExpression =
+    `*/${minutes} * * * *`;
+
+
+  console.log(
+    `Scheduling enabled — will run every ${minutes} minute(s) (cron: "${cronExpression}").`
+  );
+
+  console.log(
+    'Running first sync immediately, then on schedule. Press Ctrl+C to stop.\n'
+  );
+
+
+  await runOnceGuarded(
+    'initial run'
+  );
+
+
+  cron.schedule(
+    cronExpression,
+    () => {
+
+      const timestamp =
+        new Date().toISOString();
+
+      console.log(
+        `\n===== Scheduled run starting at ${timestamp} =====`
+      );
+
+      runOnceGuarded(
+        timestamp
+      );
+    }
+  );
 }
+
 
 main();

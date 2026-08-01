@@ -22,7 +22,7 @@ function getLogFile() {
 
     return path.join(
         logsFolder,
-        `aconex-${date}.txt`
+        `aconex-${process.env.ACONEX_PROJECT_ID}-${date}.txt`
     );
 }
 
@@ -30,17 +30,29 @@ function getLogFile() {
 
 function writeToFile(type, args) {
 
-    const timestamp = new Date().toISOString();
+    const now = new Date();
+
+    const date =
+        `${now.getFullYear()}-` +
+        `${String(now.getMonth() + 1).padStart(2, "0")}-` +
+        `${String(now.getDate()).padStart(2, "0")}`;
+
+    const time =
+        `${String(now.getHours()).padStart(2, "0")}:` +
+        `${String(now.getMinutes()).padStart(2, "0")}:` +
+        `${String(now.getSeconds()).padStart(2, "0")}.` +
+        `${String(now.getMilliseconds()).padStart(3, "0")}`;
+
+    const timestamp = `${date} ${time}`;
 
     const message =
         `[${timestamp}] [${type}] ` +
         args.map(a =>
             typeof a === "object"
                 ? JSON.stringify(a)
-                : a
+                : String(a)
         ).join(" ") +
         "\n";
-
 
     fs.appendFileSync(
         getLogFile(),

@@ -69,7 +69,7 @@ module.exports = {
   // Settings used when searchMode = 'allFilters'
   allFilters: {
     filters: {},         // e.g. { category: 'Category 1' } — same shape as Postman body
-    resultSize: 250,      // must be a multiple of 25
+    resultSize: 1000,      // must be a multiple of 25
   },
 
   // --------------------------------------------------------------------
@@ -152,15 +152,15 @@ module.exports = {
     "date1",
     "date2",
 
-// "ActivityCodeSwc_singleSelect",
-// "AreaCodeSubpbs_singleSelect",
-// "AreaCode_singleSelect",
-// "CwpCode_singleSelect",
-// "EnppiOriginator_singleSelect",
-// "EwpCode_singleSelect",
-// "IwpCode_singleSelect",
-// "OriginatorCode_singleSelect",
-// "ProcessUnitCode_singleSelect",
+"ActivityCodeSwc_singleSelect",
+"AreaCodeSubpbs_singleSelect",
+"AreaCode_singleSelect",
+"CwpCode_singleSelect",
+"EnppiOriginator_singleSelect",
+"EwpCode_singleSelect",
+"IwpCode_singleSelect",
+"OriginatorCode_singleSelect",
+"ProcessUnitCode_singleSelect",
 
     "markupLastModifiedDate",
     "milestoneDate",
@@ -204,7 +204,7 @@ module.exports = {
   sql: {
     schema: 'dbo',
     tableName: 'DocumentRegisterTest', // <-- confirm exact spelling 
-
+    workflowTableName: 'WorkflowRegisterTest', 
     // Set to a real column name (e.g. 'LastSyncedAt') ONLY if the existing
     // table actually has a column for tracking sync time. Set to null/false
     // to skip writing any such column — most existing tables won't have one.
