@@ -44,7 +44,7 @@ const FIELD_MAP = [
     xmlKey: 'documentId',
     jsonKey: 'documentId',
     jsonRequestKey: null,
-    sqlColumn: 'documentId',
+    sqlColumn: 'DocumentId',
     sqlType: 'bigString',
     length: 32
   },
@@ -54,7 +54,7 @@ const FIELD_MAP = [
     xmlKey: 'docno',
     jsonKey: 'documentNumber',
     jsonRequestKey: 'docno',
-    sqlColumn: 'docno',
+    sqlColumn: 'DocNo',
     sqlType: 'string',
     length: 210
   },
@@ -64,7 +64,7 @@ const FIELD_MAP = [
     xmlKey: 'title',
     jsonKey: 'title',
     jsonRequestKey: 'title',
-    sqlColumn: 'title',
+    sqlColumn: 'Title',
     sqlType: 'string',
     length: 500
   },
@@ -74,7 +74,7 @@ const FIELD_MAP = [
     xmlKey: 'doctype',
     jsonKey: 'documentType',
     jsonRequestKey: 'doctype',
-    sqlColumn: 'doctype',
+    sqlColumn: 'Doctype',
     sqlType: 'string',
     length: 200
   },
@@ -84,7 +84,7 @@ const FIELD_MAP = [
     xmlKey: 'statusid',
     jsonKey: 'documentStatus',
     jsonRequestKey: 'statusid',
-    sqlColumn: 'statusid',
+    sqlColumn: 'StatusId',
     sqlType: 'string',
     length: 100
   },
@@ -94,7 +94,7 @@ const FIELD_MAP = [
     xmlKey: 'revision',
     jsonKey: 'revision',
     jsonRequestKey: 'revision',
-    sqlColumn: 'revision',
+    sqlColumn: 'Revision',
     sqlType: 'string',
     length: 50
   },
@@ -104,7 +104,7 @@ const FIELD_MAP = [
     xmlKey: 'revisiondate',
     jsonKey: 'revisionDate',
     jsonRequestKey: 'revisiondate',
-    sqlColumn: 'revisiondate',
+    sqlColumn: 'RevisionDate',
     sqlType: 'date'
   },
 
@@ -113,7 +113,7 @@ const FIELD_MAP = [
     xmlKey: 'author',
     jsonKey: 'author',
     jsonRequestKey: 'author',
-    sqlColumn: 'author',
+    sqlColumn: 'Author',
     sqlType: 'string',
     length: 200
   },
@@ -133,7 +133,7 @@ const FIELD_MAP = [
     xmlKey: 'discipline',
     jsonKey: 'discipline',
     jsonRequestKey: 'discipline',
-    sqlColumn: 'discipline',
+    sqlColumn: 'Discipline',
     sqlType: 'string',
     length: 200
   },
@@ -190,7 +190,7 @@ const FIELD_MAP = [
     xmlKey: 'comments',
     jsonKey: 'comments',
     jsonRequestKey: 'comments',
-    sqlColumn: 'comments',
+    sqlColumn: 'Comments',
     sqlType: 'text'
   },
 
@@ -208,7 +208,7 @@ const FIELD_MAP = [
     xmlKey: 'registered',
     jsonKey: 'dateModified',
     jsonRequestKey: 'registered',
-    sqlColumn: 'registered',
+    sqlColumn: 'Registered',
     sqlType: 'date'
   },
 
@@ -272,7 +272,7 @@ const FIELD_MAP = [
     xmlKey: 'reviewSource',
     jsonKey: 'reviewSource',
     jsonRequestKey: 'reviewSource',
-    sqlColumn: 'reviewSource',
+    sqlColumn: 'ReviewSource',
     sqlType: 'string',
     length: 50
   },
@@ -282,7 +282,7 @@ const FIELD_MAP = [
     xmlKey: 'reviewstatus',
     jsonKey: 'reviewStatus',
     jsonRequestKey: 'reviewstatus',
-    sqlColumn: 'reviewstatus',
+    sqlColumn: 'ReviewStatus',
     sqlType: 'string',
     length: 50
   },
@@ -312,7 +312,7 @@ const FIELD_MAP = [
     xmlKey: 'vdrcode',
     jsonKey: 'vdrcode',
     jsonRequestKey: 'vdrcode',
-    sqlColumn: 'vdrcode',
+    sqlColumn: 'VDRCode',
     sqlType: 'string',
     length: 50
   },
@@ -322,7 +322,7 @@ const FIELD_MAP = [
     xmlKey: 'trackingid',
     jsonKey: 'trackingid',
     jsonRequestKey: 'trackingid',
-    sqlColumn: 'trackingid',
+    sqlColumn: 'Trackingid',
     sqlType: 'bigString',
     length: 32
   },
@@ -332,7 +332,7 @@ const FIELD_MAP = [
     xmlKey: 'versionnumber',
     jsonKey: 'versionNumber',
     jsonRequestKey: 'versionnumber',
-    sqlColumn: 'versionnumber',
+    sqlColumn: 'VersionNumber',
     sqlType: 'integer'
   },
 
@@ -406,7 +406,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist1',
     jsonKey: 'selectList1',
     jsonRequestKey: 'selectlist1',
-    sqlColumn: 'selectlist1',
+    sqlColumn: 'SelectList1',
     sqlType: 'text',
     length: 60
   },
@@ -416,7 +416,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist2',
     jsonKey: 'selectList2',
     jsonRequestKey: 'selectlist2',
-    sqlColumn: 'selectlist2',
+    sqlColumn: 'SelectList2',
     sqlType: 'text',
     length: 60
   },
@@ -426,7 +426,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist3',
     jsonKey: 'selectList3',
     jsonRequestKey: 'selectlist3',
-    sqlColumn: 'selectlist3',
+    sqlColumn: 'SelectList3',
     sqlType: 'text',
     length: 60
   },
@@ -436,7 +436,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist4',
     jsonKey: 'selectList4',
     jsonRequestKey: 'selectlist4',
-    sqlColumn: 'selectlist4',
+    sqlColumn: 'SelectList4',
     sqlType: 'text',
     length: 60
   },
@@ -446,7 +446,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist5',
     jsonKey: 'selectList5',
     jsonRequestKey: 'selectlist5',
-    sqlColumn: 'selectlist5',
+    sqlColumn: 'SelectList5',
     sqlType: 'text',
     length: 60
   },
@@ -456,7 +456,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist6',
     jsonKey: 'selectList6',
     jsonRequestKey: 'selectlist6',
-    sqlColumn: 'selectlist6',
+    sqlColumn: 'SelectList6',
     sqlType: 'text',
     length: 60
   },
@@ -466,7 +466,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist7',
     jsonKey: 'selectList7',
     jsonRequestKey: 'selectlist7',
-    sqlColumn: 'selectlist7',
+    sqlColumn: 'SelectList7',
     sqlType: 'text',
     length: 60
   },
@@ -476,7 +476,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist8',
     jsonKey: 'selectList8',
     jsonRequestKey: 'selectlist8',
-    sqlColumn: 'selectlist8',
+    sqlColumn: 'SelectList8',
     sqlType: 'text',
     length: 60
   },
@@ -486,7 +486,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist9',
     jsonKey: 'selectList9',
     jsonRequestKey: 'selectlist9',
-    sqlColumn: 'selectlist9',
+    sqlColumn: 'SelectList9',
     sqlType: 'text',
     length: 60
   },
@@ -496,7 +496,7 @@ const FIELD_MAP = [
     xmlKey: 'selectlist10',
     jsonKey: 'selectList10',
     jsonRequestKey: 'selectlist10',
-    sqlColumn: 'selectlist10',
+    sqlColumn: 'SelectList10',
     sqlType: 'text',
     length: 60
   },
@@ -536,7 +536,7 @@ const FIELD_MAP = [
     xmlKey: null,
     jsonKey: null,
     jsonRequestKey: null,
-    sqlColumn: 'projectid',
+    sqlColumn: 'ProjectId',
     sqlType: 'string',
     length: 50
   },
@@ -581,7 +581,7 @@ const FIELD_MAP = [
  xmlKey:'received',
  jsonKey:'dateCreated',
  jsonRequestKey:'received',
- sqlColumn:'dateCreated',
+ sqlColumn:'Received',
  sqlType:'date'
 },
 
@@ -617,7 +617,7 @@ const FIELD_MAP = [
  xmlKey:'plannedsubmissiondate',
  jsonKey:'plannedSubmissionDate',
  jsonRequestKey:'plannedsubmissiondate',
- sqlColumn:'plannedSubmissionDate',
+ sqlColumn:'PlannedSubmissionDate',
  sqlType:'date'
 },
 
@@ -662,7 +662,7 @@ const FIELD_MAP = [
  xmlKey:'check1',
  jsonKey:'check1',
  jsonRequestKey:'check1',
- sqlColumn:'check1',
+ sqlColumn:'Check1',
  sqlType:'boolean'
 },
 
@@ -728,11 +728,14 @@ jsonRequestKey:'vendorrev',
 sqlColumn:'vendorRevision',
 sqlType:'string'
 },
+
+// Project Fields (Custom Fields)
+//------------------------------------------
 {
     canonicalKey: 'ActivityCodeSwc_singleSelect',
     xmlKey: null,
     jsonKey: 'ActivityCodeSwc_singleSelect',
-    sqlColumn: 'ActivityCodeSwc_singleSelect',
+    sqlColumn: 'ProjectField1',
     sqlType: 'string',
     length: 100
 },
@@ -741,7 +744,7 @@ sqlType:'string'
     canonicalKey: 'AreaCodeSubpbs_singleSelect',
     xmlKey: null,
     jsonKey: 'AreaCodeSubpbs_singleSelect',
-    sqlColumn: 'AreaCodeSubpbs_singleSelect',
+    sqlColumn: 'ProjectField2',
     sqlType: 'string',
     length: 100
 },
@@ -750,7 +753,7 @@ sqlType:'string'
     canonicalKey: 'AreaCode_singleSelect',
     xmlKey: null,
     jsonKey: 'AreaCode_singleSelect',
-    sqlColumn: 'AreaCode_singleSelect',
+    sqlColumn: 'ProjectField3',
     sqlType: 'string',
     length: 100
 },
@@ -759,7 +762,7 @@ sqlType:'string'
     canonicalKey: 'CwpCode_singleSelect',
     xmlKey: null,
     jsonKey: 'CwpCode_singleSelect',
-    sqlColumn: 'CwpCode_singleSelect',
+    sqlColumn: 'ProjectField4',
     sqlType: 'string',
     length: 100
 },
@@ -768,7 +771,7 @@ sqlType:'string'
     canonicalKey: 'EnppiOriginator_singleSelect',
     xmlKey: null,
     jsonKey: 'EnppiOriginator_singleSelect',
-    sqlColumn: 'EnppiOriginator_singleSelect',
+    sqlColumn: 'ProjectField5',
     sqlType: 'string',
     length: 100
 },
@@ -777,7 +780,7 @@ sqlType:'string'
     canonicalKey: 'EwpCode_singleSelect',
     xmlKey: null,
     jsonKey: 'EwpCode_singleSelect',
-    sqlColumn: 'EwpCode_singleSelect',
+    sqlColumn: 'ProjectField6',
     sqlType: 'string',
     length: 100
 },
@@ -786,7 +789,7 @@ sqlType:'string'
     canonicalKey: 'IwpCode_singleSelect',
     xmlKey: null,
     jsonKey: 'IwpCode_singleSelect',
-    sqlColumn: 'IwpCode_singleSelect',
+    sqlColumn: 'ProjectField7',
     sqlType: 'string',
     length: 100
 },
@@ -795,7 +798,7 @@ sqlType:'string'
     canonicalKey: 'OriginatorCode_singleSelect',
     xmlKey: null,
     jsonKey: 'OriginatorCode_singleSelect',
-    sqlColumn: 'OriginatorCode_singleSelect',
+    sqlColumn: 'ProjectField8',
     sqlType: 'string',
     length: 100
 },
@@ -804,7 +807,7 @@ sqlType:'string'
     canonicalKey: 'ProcessUnitCode_singleSelect',
     xmlKey: null,
     jsonKey: 'ProcessUnitCode_singleSelect',
-    sqlColumn: 'ProcessUnitCode_singleSelect',
+    sqlColumn: 'ProjectField9',
     sqlType: 'string',
     length: 100
 }

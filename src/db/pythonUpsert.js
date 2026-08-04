@@ -259,8 +259,7 @@ async function upsertRows(rows) {
             ? parseInt(deleteMatch[1], 10)
             : 0;
 
-
-        console.log(
+          console.log(
           `✔ Upserted ${upserted} document rows`
         );
 
@@ -463,6 +462,188 @@ async function syncWorkflowRowsToSql(rows) {
   });
 }
 
+// ============================================================================
+// PACKAGE REGISTER
+// ============================================================================
+async function syncPackageRowsToSql(rows) {
+
+  if (!rows || rows.length === 0) {
+
+    console.log(
+      'No packages rows to sync — skipping SQL operation.'
+    );
+
+    return {
+      upserted: 0,
+      deleted: 0
+    };
+  }
+
+
+  const server =
+    requireEnv('SQL_SERVER');
+
+  const database =
+    requireEnv('SQL_DATABASE');
+
+  const driver =
+    process.env.SQL_ODBC_DRIVER ||
+    'ODBC Driver 17 for SQL Server';
+
+
+  const scriptPath =
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'package_upsert_to_sql.py'
+    );
+
+
+  if (!fs.existsSync(scriptPath)) {
+
+    throw new Error(
+      `Package Python script not found at ${scriptPath}`
+    );
+  }
+
+
+  const tmpFile =
+    path.join(
+      os.tmpdir(),
+      `aconex-package-${Date.now()}-${process.pid}.json`
+    );
+
+
+  /*
+   * The parser already adds projectId.
+   *
+   * Do NOT use ACONEX_PROJECT_ID to overwrite it here.
+   *
+   * This keeps the workflow rows tied to the actual project
+   * returned/used by the Workflow API.
+   */
+
+  const packages =
+    rows.map(row => ({
+      ...row
+    }));
+
+
+  fs.writeFileSync(
+    tmpFile,
+    JSON.stringify({
+      rows: packages
+    })
+  );
+
+
+  console.log(
+    `Handing off ${packages.length} workflow rows to Python (${scriptPath})...`
+  );
+
+
+  return new Promise((resolve, reject) => {
+
+    execFile(
+      PYTHON_COMMAND,
+      [
+        scriptPath,
+
+        '--data-file',
+        tmpFile,
+
+        '--server',
+        server,
+
+        '--database',
+        database,
+
+        '--schema',
+        config.sql.schema,
+
+        '--table',
+        config.sql.packageTableName,
+
+        '--driver',
+        driver
+      ],
+      {
+        maxBuffer: 1024 * 1024 * 50
+      },
+
+      (err, stdout, stderr) => {
+
+        fs.unlink(
+          tmpFile,
+          () => {}
+        );
+
+
+        if (stdout) {
+          console.log(stdout);
+        }
+
+
+        if (stderr) {
+          console.error(stderr);
+        }
+
+
+        if (err) {
+
+          reject(
+            new Error(
+              `Python package upsert failed: ${
+                (stderr || err.message).trim()
+              }`
+            )
+          );
+
+          return;
+        }
+
+
+        const upsertMatch =
+          stdout.match(
+            /UPSERTED:(\d+)/
+          );
+
+        const deleteMatch =
+          stdout.match(
+            /DELETED:(\d+)/
+          );
+
+
+        const upserted =
+          upsertMatch
+            ? parseInt(upsertMatch[1], 10)
+            : 0;
+
+        const deleted =
+          deleteMatch
+            ? parseInt(deleteMatch[1], 10)
+            : 0;
+
+
+        console.log(
+          `✔ Upserted ${upserted} workflow rows into ${config.sql.schema}.${config.sql.packageTableName}`
+        );
+
+        console.log(
+          `✔ Deleted ${deleted} package rows`
+        );
+
+
+        resolve({
+          upserted,
+          deleted
+        });
+      }
+    );
+  });
+}
 
 // ============================================================================
 // EXISTING DOCUMENT API
@@ -506,6 +687,9 @@ module.exports = {
 
   closeConnection,
 
-  getColumns
+  getColumns,
+
+  syncPackageRowsToSql,
+
 
 };

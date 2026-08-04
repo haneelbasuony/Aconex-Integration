@@ -15,34 +15,26 @@
  * ============================================================================
  */
 
-'use strict';
+"use strict";
 
-const { parseStringPromise } = require('xml2js');
-
+const { parseStringPromise } = require("xml2js");
 
 /**
  * Safely get a value from an XML node.
  */
 function getValue(value) {
-
-  if (
-    value === undefined ||
-    value === null
-  ) {
+  if (value === undefined || value === null) {
     return null;
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const trimmed = value.trim();
 
-    return trimmed === ''
-      ? null
-      : trimmed;
+    return trimmed === "" ? null : trimmed;
   }
 
   return value;
 }
-
 
 /**
  * Convert an XML object into JSON.
@@ -54,27 +46,20 @@ function getValue(value) {
  * Reviewer
  */
 function objectToJson(value) {
-
-  if (
-    value === undefined ||
-    value === null
-  ) {
+  if (value === undefined || value === null) {
     return null;
   }
 
   return JSON.stringify(value);
 }
 
-
 /**
  * Parse one <Workflow> XML object.
  */
 function flattenWorkflow(workflow, projectId) {
-
-  if (!workflow || typeof workflow !== 'object') {
+  if (!workflow || typeof workflow !== "object") {
     return null;
   }
-
 
   /*
    * WorkflowId is an XML ATTRIBUTE:
@@ -86,17 +71,21 @@ function flattenWorkflow(workflow, projectId) {
    *
    * workflow.WorkflowId
    */
-  const workflowId =
-    getValue(workflow.WorkflowId);
+  const workflowId = getValue(workflow.WorkflowId);
 
+if (!workflowId) {
+  return null;
+}
 
-  if (!workflowId) {
-    return null;
-  }
+const assignees = workflow.Assignees?.Assignee;
 
+const assigneeList = Array.isArray(assignees)
+  ? assignees
+  : assignees
+    ? [assignees]
+    : [];
 
-  return {
-
+return {
     // ------------------------------------------------------------------------
     // Keys
     // ------------------------------------------------------------------------
@@ -105,148 +94,114 @@ function flattenWorkflow(workflow, projectId) {
 
     workflowId: workflowId,
 
-
     // ------------------------------------------------------------------------
     // Workflow information
     // ------------------------------------------------------------------------
 
-    assignees:
-      workflow.Assignees
-        ? objectToJson(workflow.Assignees)
-        : null,
+assigneesName:
+  assigneeList
+    .map(a => a.Name)
+    .filter(Boolean)
+    .join(": ") || null,
 
-    comments:
-      getValue(workflow.Comments),
+assigneesId:
+  assigneeList
+    .map(a => a.UserId)
+    .filter(Boolean)
+    .join(": ") || null,
 
-    dateCompleted:
-      getValue(workflow.DateCompleted),
 
-    dateDue:
-      getValue(workflow.DateDue),
+    comments: getValue(workflow.Comments),
 
-    dateIn:
-      getValue(workflow.DateIn),
+    dateCompleted: getValue(workflow.DateCompleted),
 
-    daysLate:
-      getValue(workflow.DaysLate),
+    dateDue: getValue(workflow.DateDue),
 
+    dateIn: getValue(workflow.DateIn),
+
+    daysLate: getValue(workflow.DaysLate),
 
     // ------------------------------------------------------------------------
     // Document information
     // ------------------------------------------------------------------------
 
-    documentNumber:
-      getValue(workflow.DocumentNumber),
+    documentNumber: getValue(workflow.DocumentNumber),
 
-    documentRevision:
-      getValue(workflow.DocumentRevision),
+    documentRevision: getValue(workflow.DocumentRevision),
 
-    documentTitle:
-      getValue(workflow.DocumentTitle),
+    documentTitle: getValue(workflow.DocumentTitle),
 
-    documentTrackingId:
-      getValue(workflow.DocumentTrackingId),
+    documentTrackingId: getValue(workflow.DocumentTrackingId),
 
-    documentVersion:
-      getValue(workflow.DocumentVersion),
-
+    documentVersion: getValue(workflow.DocumentVersion),
 
     // ------------------------------------------------------------------------
     // File information
     // ------------------------------------------------------------------------
 
-    duration:
-      getValue(workflow.Duration),
+    duration: getValue(workflow.Duration),
 
-    fileName:
-      getValue(workflow.FileName),
+    fileName: getValue(workflow.FileName),
 
-    fileSize:
-      getValue(workflow.FileSize),
-
+    fileSize: getValue(workflow.FileSize),
 
     // ------------------------------------------------------------------------
     // People
     // ------------------------------------------------------------------------
 
-    initiator:
-      workflow.Initiator
-        ? objectToJson(workflow.Initiator)
-        : null,
+    initiatorName: getValue(workflow.Initiator?.Name),
 
-    reviewer:
-      workflow.Reviewer
-        ? objectToJson(workflow.Reviewer)
-        : null,
+    initiatorId: getValue(workflow.Initiator?.UserId),
 
+    reviewerName: getValue(workflow.Reviewer?.Name),
+
+    reviewerId: getValue(workflow.Reviewer?.UserId),
 
     // ------------------------------------------------------------------------
     // Dates
     // ------------------------------------------------------------------------
 
-    originalDueDate:
-      getValue(workflow.OriginalDueDate),
-
+    originalDueDate: getValue(workflow.OriginalDueDate),
 
     // ------------------------------------------------------------------------
     // Workflow process
     // ------------------------------------------------------------------------
 
-    reasonForIssue:
-      getValue(workflow.ReasonForIssue),
+    reasonForIssue: getValue(workflow.ReasonForIssue),
 
-    stepName:
-      getValue(workflow.StepName),
+    stepName: getValue(workflow.StepName),
 
-    stepOutcome:
-      getValue(workflow.StepOutcome),
+    stepOutcome: getValue(workflow.StepOutcome),
 
-    stepStatus:
-      getValue(workflow.StepStatus),
+    stepStatus: getValue(workflow.StepStatus),
 
-    workflowName:
-      getValue(workflow.WorkflowName),
+    workflowName: getValue(workflow.WorkflowName),
 
-    workflowNumber:
-      getValue(workflow.WorkflowNumber),
+    workflowNumber: getValue(workflow.WorkflowNumber),
 
-    workflowStatus:
-      getValue(workflow.WorkflowStatus),
+    workflowStatus: getValue(workflow.WorkflowStatus),
 
-    workflowTemplate:
-      getValue(workflow.WorkflowTemplate)
+    workflowTemplate: getValue(workflow.WorkflowTemplate),
   };
 }
-
 
 /**
  * Parse one XML page.
  */
 async function parseWorkflowXml(xml, projectId) {
-
-  if (
-    !xml ||
-    typeof xml !== 'string'
-  ) {
-    throw new Error(
-      'Workflow XML response is empty or invalid.'
-    );
+  if (!xml || typeof xml !== "string") {
+    throw new Error("Workflow XML response is empty or invalid.");
   }
 
+  const parsed = await parseStringPromise(xml, {
+    explicitArray: false,
 
-  const parsed =
-    await parseStringPromise(xml, {
+    mergeAttrs: true,
 
-      explicitArray: false,
+    explicitRoot: true,
 
-      mergeAttrs: true,
-
-      explicitRoot: true,
-
-      trim: true
-
-    });
-
+    trim: true,
+  });
 
   /*
    * Expected structure:
@@ -257,35 +212,25 @@ async function parseWorkflowXml(xml, projectId) {
    *
    */
 
-  const workflowSearch =
-    parsed.WorkflowSearch;
-
+  const workflowSearch = parsed.WorkflowSearch;
 
   if (!workflowSearch) {
-
     throw new Error(
-      'Workflow XML does not contain WorkflowSearch root element.'
+      "Workflow XML does not contain WorkflowSearch root element.",
     );
   }
 
-
-  const searchResults =
-    workflowSearch.SearchResults;
-
+  const searchResults = workflowSearch.SearchResults;
 
   if (!searchResults) {
     return [];
   }
 
-
-  let workflows =
-    searchResults.Workflow;
-
+  let workflows = searchResults.Workflow;
 
   if (!workflows) {
     return [];
   }
-
 
   /*
    * If there is only one Workflow,
@@ -300,57 +245,36 @@ async function parseWorkflowXml(xml, projectId) {
     workflows = [workflows];
   }
 
-
   const rows = [];
 
-
   for (const workflow of workflows) {
-
-    const row =
-      flattenWorkflow(
-        workflow,
-        projectId
-      );
+    const row = flattenWorkflow(workflow, projectId);
 
     if (row) {
       rows.push(row);
     }
   }
 
-
   return rows;
 }
-
 
 /**
  * Parse multiple XML pages.
  */
-async function parseWorkflowPages(
-  xmlPages,
-  projectId
-) {
-
+async function parseWorkflowPages(xmlPages, projectId) {
   const allRows = [];
 
-
   for (const xml of xmlPages) {
-
-    const rows =
-      await parseWorkflowXml(
-        xml,
-        projectId
-      );
+    const rows = await parseWorkflowXml(xml, projectId);
 
     allRows.push(...rows);
   }
 
-
   return allRows;
 }
-
 
 module.exports = {
   parseWorkflowXml,
   parseWorkflowPages,
-  flattenWorkflow
+  flattenWorkflow,
 };

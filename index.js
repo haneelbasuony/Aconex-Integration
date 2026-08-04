@@ -49,6 +49,13 @@ const {
 
 const syncConfig = require('./aconex.config');
 
+const {
+  listAllPackages
+} = require('./src/api/packages');
+
+const {
+  parsePackagePages
+} = require('./src/utils/packageParser');
 
 // ============================================================================
 // DOCUMENT SYNC
@@ -325,8 +332,55 @@ async function runWorkflowSync(accessToken) {
     `✔ Workflow Register sync completed: ${workflowRows.length} rows`
   );
 }
+// ============================================================================
+// PACKAGES SYNC
+// ============================================================================
+async function runPackageSync(
+  accessToken
+) {
 
+  console.log('\n============================================');
+  console.log('PACKAGE REGISTER SYNC');
+  console.log('============================================\n');
 
+  const projectId =
+    CONFIG.projectId ||
+    process.env.ACONEX_PROJECT_ID;
+
+  const packageXmlPages =
+    await listAllPackages(
+      accessToken,
+      {
+        projectId,
+        limit: 100
+      }
+    );
+
+  const packageRows =
+    await parsePackagePages(
+      packageXmlPages,
+      projectId
+    );
+
+  console.log(
+    `✔ Parsed ${packageRows.length} package rows`
+  );
+
+  const {
+    syncPackageRowsToSql
+  } =
+    require(
+      './src/db/packageRegisterRepository'
+    );
+
+  await syncPackageRowsToSql(
+    packageRows
+  );
+
+  console.log(
+    `✔ Package Register sync completed: ${packageRows.length} rows`
+  );
+}
 // ============================================================================
 // LIST PROJECTS
 // ============================================================================
@@ -458,10 +512,16 @@ async function runOnce() {
       // 2. WORKFLOW REGISTER
       // ------------------------------------------------------------
 
-      await runWorkflowSync(
-        accessToken
-      );
+      // await runWorkflowSync(
+      //   accessToken
+      // );
 
+      // ------------------------------------------------------------
+      // 3. Packages REGISTER
+      // ------------------------------------------------------------
+      // await runPackageSync(
+      // accessToken
+      // );
 
       break;
 

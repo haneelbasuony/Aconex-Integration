@@ -1,30 +1,5 @@
-"""
-============================================================================
-WORKFLOW UPSERT TO SQL SERVER — via pyodbc / Windows Integrated Security
-============================================================================
 
-Receives workflow rows from Node.js and:
 
-1. Inserts new workflows.
-2. Updates existing workflows.
-3. Deletes workflows that are no longer returned by Aconex.
-
-Synchronization key:
-
-    projectId + workflowId
-
-This allows multiple Aconex projects to coexist in the same Workflow table.
-
-The implementation intentionally uses:
-
-    IF EXISTS
-        UPDATE
-    ELSE
-        INSERT
-
-instead of MERGE, to avoid parameter-marker problems with pyodbc/SQL Server.
-============================================================================
-"""
 
 import argparse
 import json
@@ -49,46 +24,26 @@ def build_connection_string(server, database, driver):
 
 
 # ============================================================================
-# WORKFLOW COLUMNS
+# PACKAGE COLUMNS
 # ============================================================================
 
-WORKFLOW_COLUMNS = [
+PACKAGE_COLUMNS = [
     "projectId",
-    "workflowId",
-    "workflowName",
-    "workflowNumber",
-    "workflowStatus",
-    "workflowTemplate",
-    "stepName",
-    "stepOutcome",
-    "assigneesName",
-    "assigneesId",
-    "comments",
-    "dateCompleted",
-    "dateDue",
-    "dateIn",
-    "daysLate",
-    "documentNumber",
-    "documentRevision",
-    "documentTitle",
-    "documentTrackingId",
-    "documentVersion",
-    "duration",
-    "fileName",
-    "fileSize",
-    "initiatorName",
-    "initiatorId",
-    "stepStatus",
-    "reasonForIssue",
-    "reviewerName",
-    "reviewerId",
-    "originalDueDate",
+    "packageNumber",
+    "title",
+    "revision",
+    "state",
+    "projectField1",
+    "projectField2",
+    "projectField3",
+    "projectField4",
+    "projectField5",
+    "projectField6"
 ]
-
 
 KEY_COLUMNS = [
     "projectId",
-    "workflowId",
+    "packageNumber"
 ]
 
 
@@ -100,7 +55,7 @@ def build_upsert_sql(schema, table):
 
     update_columns = [
         column
-        for column in WORKFLOW_COLUMNS
+        for column in PACKAGE_COLUMNS
         if column not in KEY_COLUMNS
     ]
 
@@ -121,7 +76,7 @@ def build_upsert_sql(schema, table):
 
     insert_columns = ", ".join(
         f"[{column}]"
-        for column in WORKFLOW_COLUMNS
+        for column in PACKAGE_COLUMNS
     )
 
 
@@ -131,7 +86,7 @@ def build_upsert_sql(schema, table):
 
     insert_values = ", ".join(
         "?"
-        for _ in WORKFLOW_COLUMNS
+        for _ in PACKAGE_COLUMNS
     )
 
 
@@ -141,7 +96,7 @@ IF EXISTS
     SELECT 1
     FROM [{schema}].[{table}]
     WHERE [projectId] = ?
-      AND [workflowId] = ?
+      AND [packageNumber] = ?
 )
 BEGIN
 
@@ -149,7 +104,7 @@ BEGIN
     SET
         {update_set}
     WHERE [projectId] = ?
-      AND [workflowId] = ?
+      AND [packageNumber] = ?
 
 END
 ELSE
@@ -177,7 +132,7 @@ END
 def build_upsert_params(row):
 
     project_id = row.get("projectId")
-    workflow_id = row.get("workflowId")
+    package_number = row.get("packageNumber")
 
 
     # ------------------------------------------------------------------------
@@ -188,7 +143,7 @@ def build_upsert_params(row):
 
     update_values = [
         row.get(column)
-        for column in WORKFLOW_COLUMNS
+        for column in PACKAGE_COLUMNS
         if column not in KEY_COLUMNS
     ]
 
@@ -196,12 +151,12 @@ def build_upsert_params(row):
     # ------------------------------------------------------------------------
     # INSERT VALUES
     #
-    # Must match WORKFLOW_COLUMNS order exactly.
+    # Must match PACKAGE_COLUMNS order exactly.
     # ------------------------------------------------------------------------
 
     insert_values = [
         row.get(column)
-        for column in WORKFLOW_COLUMNS
+        for column in PACKAGE_COLUMNS
     ]
 
 
@@ -209,24 +164,24 @@ def build_upsert_params(row):
     # SQL ORDER
     #
     # 1. EXISTS projectId
-    # 2. EXISTS workflowId
+    # 2. EXISTS packageNumber
     # 3. UPDATE values
     # 4. UPDATE projectId
-    # 5. UPDATE workflowId
+    # 5. UPDATE packageNumber
     # 6. INSERT values
     # ------------------------------------------------------------------------
 
     params = (
         [
             project_id,
-            workflow_id,
+            package_number,
         ]
 
         + update_values
 
         + [
             project_id,
-            workflow_id,
+            package_number,
         ]
 
         + insert_values
@@ -237,18 +192,18 @@ def build_upsert_params(row):
 
 
 # ============================================================================
-# DELETE REMOVED WORKFLOWS
+# DELETE REMOVED Packages
 # ============================================================================
 
-def delete_removed_workflows(
+def delete_removed_packages(
     cursor,
     schema,
     table,
     project_id,
-    workflow_ids
+    package_numbers
 ):
     """
-    Delete workflows for the current project that were not returned
+    Delete Packages for the current project that were not returned
     by Aconex.
 
     A temporary SQL table is used instead of a giant NOT IN (?, ?, ...)
@@ -260,20 +215,20 @@ def delete_removed_workflows(
     # ------------------------------------------------------------------------
 
     cursor.execute("""
-        IF OBJECT_ID('tempdb..#ReturnedWorkflowIds') IS NOT NULL
-            DROP TABLE #ReturnedWorkflowIds;
+        IF OBJECT_ID('tempdb..#ReturnedPackagesNumbers') IS NOT NULL
+            DROP TABLE #ReturnedPackagesNumbers;
 
-        CREATE TABLE #ReturnedWorkflowIds
+        CREATE TABLE #ReturnedPackagesNumbers
         (
-            workflowId NVARCHAR(100) NOT NULL
+            packageNumber NVARCHAR(100) NOT NULL
         );
     """)
 
     # ------------------------------------------------------------------------
-    # If Aconex returned no workflows, delete all workflows for this project.
+    # If Aconex returned no package, delete all packages for this project.
     # ------------------------------------------------------------------------
 
-    if not workflow_ids:
+    if not package_numbers:
 
         cursor.execute(
             f"""
@@ -286,14 +241,14 @@ def delete_removed_workflows(
         return cursor.rowcount
 
     # ------------------------------------------------------------------------
-    # Insert returned workflow IDs into temporary table.
+    # Insert returned Package IDs into temporary table.
     #
     # This uses executemany() instead of creating 171,850 SQL parameters
     # inside one DELETE statement.
     # ------------------------------------------------------------------------
 
     insert_sql = """
-        INSERT INTO #ReturnedWorkflowIds (workflowId)
+        INSERT INTO #ReturnedPackagesNumbers (packageNumber)
         VALUES (?)
     """
 
@@ -301,11 +256,11 @@ def delete_removed_workflows(
 
     cursor.executemany(
         insert_sql,
-        [(str(workflow_id),) for workflow_id in workflow_ids]
+        [(str(package_number),) for package_number in package_numbers]
     )
 
     # ------------------------------------------------------------------------
-    # Delete workflows that are NOT present in the Aconex result.
+    # Delete packages that are NOT present in the Aconex result.
     # ------------------------------------------------------------------------
 
     delete_sql = f"""
@@ -315,8 +270,8 @@ def delete_removed_workflows(
           AND NOT EXISTS
           (
               SELECT 1
-              FROM #ReturnedWorkflowIds AS returned
-              WHERE returned.[workflowId] = target.[workflowId]
+              FROM #ReturnedPackagesNumbers AS returned
+              WHERE returned.[packageNumber] = target.[packageNumber]
           )
     """
 
@@ -332,7 +287,7 @@ def delete_removed_workflows(
     # ------------------------------------------------------------------------
 
     cursor.execute("""
-        DROP TABLE #ReturnedWorkflowIds;
+        DROP TABLE #ReturnedPackagesNumbers;
     """)
 
     return deleted
@@ -412,7 +367,7 @@ def main():
 
 
     # ========================================================================
-    # VALIDATE WORKFLOW ROWS
+    # VALIDATE Package ROWS
     # ========================================================================
 
     for index, row in enumerate(rows):
@@ -420,14 +375,14 @@ def main():
         if not row.get("projectId"):
 
             raise ValueError(
-                f"Workflow row {index} is missing projectId."
+                f"Package row {index} is missing projectId."
             )
 
 
-        if not row.get("workflowId"):
+        if not row.get("packageNumber"):
 
             raise ValueError(
-                f"Workflow row {index} is missing workflowId."
+                f"Package row {index} is missing packageNumber."
             )
 
 
@@ -444,7 +399,7 @@ def main():
     if len(project_ids) != 1:
 
         raise ValueError(
-            "Workflow sync received rows from multiple projects "
+            "Package sync received rows from multiple projects "
             "in one execution."
         )
 
@@ -486,24 +441,24 @@ def main():
     # ========================================================================
 
     print(
-        f"SQL columns: {len(WORKFLOW_COLUMNS)}"
+        f"SQL columns: {len(PACKAGE_COLUMNS)}"
     )
 
 
     print(
         f"UPDATE placeholders: "
-        f"{len(WORKFLOW_COLUMNS) - len(KEY_COLUMNS) + len(KEY_COLUMNS) + len(KEY_COLUMNS)}"
+        f"{len(PACKAGE_COLUMNS) - len(KEY_COLUMNS) + len(KEY_COLUMNS) + len(KEY_COLUMNS)}"
     )
 
 
     print(
         f"INSERT placeholders: "
-        f"{len(WORKFLOW_COLUMNS)}"
+        f"{len(PACKAGE_COLUMNS)}"
     )
 
 
     print(
-        "SQL synchronization key: projectId + workflowId"
+        "SQL synchronization key: projectId + packageNumber"
     )
 
 
@@ -525,20 +480,20 @@ def main():
     try:
 
         # ====================================================================
-        # WORKFLOW IDs RETURNED BY ACONEX
+        # Package IDs RETURNED BY ACONEX
         # ====================================================================
 
-        workflow_ids = []
+        package_numbers = []
 
 
         # ====================================================================
-        # UPSERT WORKFLOWS
+        # UPSERT PACKages
         # ====================================================================
 
         for index, row in enumerate(rows):
 
-            workflow_id = row.get(
-                "workflowId"
+            package_number = row.get(
+                "packageNumber"
             )
 
 
@@ -570,7 +525,7 @@ def main():
 
 
                 print(
-                    "WORKFLOW SQL ERROR",
+                    "Package SQL ERROR",
                     file=sys.stderr
                 )
 
@@ -594,7 +549,7 @@ def main():
 
 
                 print(
-                    f"Workflow ID: {workflow_id}",
+                    f"Package Number: {package_number}",
                     file=sys.stderr
                 )
 
@@ -631,8 +586,8 @@ def main():
             # count the row as processed here.
             # ----------------------------------------------------------------
 
-            workflow_ids.append(
-                workflow_id
+            package_numbers.append(
+                package_number
             )
 
 
@@ -640,7 +595,7 @@ def main():
             if (index + 1) % 5000 == 0:
 
                 print(
-                    f"Processed {index + 1}/{len(rows)} workflows..."
+                    f"Processed {index + 1}/{len(rows)} package..."
                 )
 
 
@@ -659,20 +614,20 @@ def main():
 
 
         # ====================================================================
-        # DELETE REMOVED WORKFLOWS
+        # DELETE REMOVED PACKAGES
         # ====================================================================
 
         print(
-            "Synchronizing removed workflows..."
+            "Synchronizing removed packages..."
         )
 
 
-        deleted = delete_removed_workflows(
+        deleted = delete_removed_packages(
             cursor,
             args.schema,
             args.table,
             project_id,
-            workflow_ids
+            package_numbers
         )
 
 

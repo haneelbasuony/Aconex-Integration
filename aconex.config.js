@@ -78,106 +78,97 @@ module.exports = {
   //   controls both the Excel columns AND the SQL table columns — add or
   //   remove a line here and both outputs update automatically.
   // --------------------------------------------------------------------
- fields: [
+fields: [
   "projectid",
-    "documentId",
-    "docno",
-    "title",
-    "doctype",
-    "statusid",
-    "revision",
-    "revisiondate",
-    "author",
-    "authorisedBy",
-    "category",
-    "discipline",
-    "filename",
-    "fileSize",
-    "fileType",
-    "confidential",
-    "current",
+  "documentId",
+  "docno",
+  "title",
+  "doctype",
+  "statusid",
+  "revision",
+  "revisiondate",
+  "author",
+  "discipline",
 
-    "comments",
-    "comments2",
+  "comments",
 
-    "registered",
-    "received",
-    "reviewed",
-    "approved",
-    "forreview",
-    "toclient",
+  "registered",
+  "received",
 
-    "reference",
-    "reviewSource",
-    "reviewstatus",
+  "reviewSource",
+  "reviewstatus",
 
-    "packagenumber",
-    "contractnumber",
+  "vdrcode",
 
-    "contractorDocumentNumber",
-    "contractorRevision",
+  "trackingid",
+  "versionnumber",
 
-    "vendorDocumentNumber",
-    "vendorRevision",
+  "selectlist1",
+  "selectlist2",
+  "selectlist3",
+  "selectlist4",
+  "selectlist5",
+  "selectlist6",
+  "selectlist7",
+  "selectlist8",
+  "selectlist9",
+  "selectlist10",
 
-    "vdrcode",
+  "plannedSubmissionDate",
 
-    "trackingid",
-    "versionnumber",
+  "check1",
 
-    "percentComplete",
-    "tagNumber",
-    "scale",
+  // BUDOUR Project_Fields
+  //--------------------------
+  "ActivityCodeSwc_singleSelect",
+  "AreaCodeSubpbs_singleSelect",
+  "AreaCode_singleSelect",
+  "CwpCode_singleSelect",
+  "EnppiOriginator_singleSelect",
+  "EwpCode_singleSelect",
+  "IwpCode_singleSelect",
+  "OriginatorCode_singleSelect",
+  "ProcessUnitCode_singleSelect",
 
-    "attribute1",
-    "attribute2",
-    "attribute3",
-    "attribute4",
-
-    "selectlist1",
-    "selectlist2",
-    "selectlist3",
-    "selectlist4",
-    "selectlist5",
-    "selectlist6",
-    "selectlist7",
-    "selectlist8",
-    "selectlist9",
-    "selectlist10",
-
-    "projectField1",
-    "projectField2",
-    "projectField3",
-
-    "date1",
-    "date2",
-
-"ActivityCodeSwc_singleSelect",
-"AreaCodeSubpbs_singleSelect",
-"AreaCode_singleSelect",
-"CwpCode_singleSelect",
-"EnppiOriginator_singleSelect",
-"EwpCode_singleSelect",
-"IwpCode_singleSelect",
-"OriginatorCode_singleSelect",
-"ProcessUnitCode_singleSelect",
-
-    "markupLastModifiedDate",
-    "milestoneDate",
-
-    "noOfMarkups",
-
-    "plannedSubmissionDate",
-
-    "printSize",
-
-    "check1",
-    "check2",
-
-    "contractDeliverable",
-    "asBuiltRequired"
+  // "authorisedBy",
+  // "category",
+  // "filename",
+  // "fileSize",
+  // "fileType",
+  // "confidential",
+  // "current",
+  // "comments2",
+  // "reviewed",
+  // "approved",
+  // "forreview",
+  // "toclient",
+  // "reference",
+  // "packagenumber",
+  // "contractnumber",
+  // "contractorDocumentNumber",
+  // "contractorRevision",
+  // "vendorDocumentNumber",
+  // "vendorRevision",
+  // "percentComplete",
+  // "tagNumber",
+  // "scale",
+  // "attribute1",
+  // "attribute2",
+  // "attribute3",
+  // "attribute4",
+  // "projectField1",
+  // "projectField2",
+  // "projectField3",
+  // "date1",
+  // "date2",
+  // "markupLastModifiedDate",
+  // "milestoneDate",
+  // "noOfMarkups",
+  // "printSize",
+  // "check2",
+  // "contractDeliverable",
+  // "asBuiltRequired",
 ],
-
   // --------------------------------------------------------------------
   // WHERE OUTPUT GOES (used when mode = 'sync') — toggle either or both
   // --------------------------------------------------------------------
@@ -195,7 +186,7 @@ module.exports = {
   // --------------------------------------------------------------------
   schedule: {
     enabled: false,
-    intervalMinutes: 5,
+    intervalMinutes: 160,
   },
 
   // --------------------------------------------------------------------
@@ -204,7 +195,8 @@ module.exports = {
   sql: {
     schema: 'dbo',
     tableName: 'DocumentRegisterTest', // <-- confirm exact spelling 
-    workflowTableName: 'WorkflowRegisterTest', 
+    workflowTableName: 'WorkflowTest', 
+    packageTableName: 'PackageRegisterTest',
     // Set to a real column name (e.g. 'LastSyncedAt') ONLY if the existing
     // table actually has a column for tracking sync time. Set to null/false
     // to skip writing any such column — most existing tables won't have one.
