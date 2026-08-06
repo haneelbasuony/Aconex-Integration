@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-
+console.log('LOGGER LOADED');
 const logsFolder = path.join(process.cwd(), "logs");
 
 

@@ -292,7 +292,7 @@ const FIELD_MAP = [
     xmlKey: 'packagenumber',
     jsonKey: 'packageNumber',
     jsonRequestKey: 'packagenumber',
-    sqlColumn: 'packagenumber',
+    sqlColumn: 'packageNumber',
     sqlType: 'string',
     length: 50
   },

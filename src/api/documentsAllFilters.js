@@ -21,6 +21,7 @@
 const axios = require('axios');
 const JSONbig = require('json-bigint')({ storeAsString: true });
 const { CONFIG, RESOURCE_SERVER } = require('../config');
+const { rows } = require('mssql');
 
 // ----------------------------------------------------------------------------
 // Default fields to return if the caller doesn't specify their own. Same
@@ -61,7 +62,7 @@ const DEFAULT_RETURN_FIELDS = [
     "vendorrev",
     "vdrcode",
     "trackingid",
-    "versionnumber",
+    "versionNumber",
     "percentComplete",
     "tagNumber",
     "scale",
@@ -151,12 +152,12 @@ async function searchDocumentsAllFilters(accessToken, {
     // if configured — some tenants' tokens carry enough identity already.
     ...(CONFIG.aconexOrgId ? { orgId: CONFIG.aconexOrgId } : {}),
     ...(CONFIG.aconexSearchUserId ? { userId: CONFIG.aconexSearchUserId } : {}),
-    ...filters,
+     ...filters,
+    showDocHistory:'true',
     returnFields,
     resultSize: String(resultSize),
     pageNumber: String(pageNumber),
   };
-
   const response = await axios.post(
     `${RESOURCE_SERVER}/api/projects/${CONFIG.projectId}/register/search`,
     body,
@@ -178,6 +179,110 @@ async function searchDocumentsAllFilters(accessToken, {
 
   return response.data; // { searchResults: [...], totalResultsCount, totalNumberOfPages, ... }
 }
+
+
+
+function deriveLiveRows(allRows) {
+
+  // ----------------------------------------------------------
+  // STEP 1
+  // Find the latest version for every tracking ID.
+  // ----------------------------------------------------------
+
+  const latestDocuments = new Map();
+
+  for (const row of allRows) {
+
+    if (!row.trackingid) {
+      continue;
+    }
+
+    const key =
+      String(row.trackingid);
+
+    const currentVersion =
+      Number(row.versionNumber || 0);
+
+    const existing =
+      latestDocuments.get(key);
+
+    if (!existing) {
+
+      latestDocuments.set(
+        key,
+        row
+      );
+
+      continue;
+    }
+
+    const existingVersion =
+      Number(
+        existing.versionNumber || 0
+      );
+
+    if (
+      currentVersion >
+      existingVersion
+    ) {
+      latestDocuments.set(
+        key,
+        row
+      );
+    }
+  }
+
+  // ----------------------------------------------------------
+  // STEP 2
+  // Remove documents whose LATEST version
+  // is No Longer In Use.
+  // ----------------------------------------------------------
+
+  const liveRows =
+    Array.from(
+      latestDocuments.values()
+    )
+    .filter(row =>
+      String(
+        row.documentStatus || ''
+      )
+        .trim()
+        .toLowerCase() !==
+      'no longer in use'
+    );
+
+  console.log(
+    `History rows: ${allRows.length}`
+  );
+
+  console.log(
+    `Latest versions: ${latestDocuments.size}`
+  );
+
+  console.log(
+    `Live rows: ${liveRows.length}`
+  );
+
+  console.table(
+    liveRows.map(r => ({
+      documentNumber:
+        r.documentNumber,
+
+      trackingid:
+        r.trackingid,
+
+      versionNumber:
+        r.versionNumber,
+
+      status:
+        r.documentStatus
+    }))
+  );
+
+  return liveRows;
+}
+
+
 
 // ----------------------------------------------------------------------------
 // Loop through every page automatically, same pattern as listAllDocuments()
@@ -206,7 +311,23 @@ const rows = (data.searchResults || []).map(flattenAllFiltersDocument);
     pageNumber++;
   } while (pageNumber <= totalPages);
 
-  return allRows;
+  const liveRows =
+  deriveLiveRows(allRows);
+for (const row of liveRows) {
+
+}
+console.log(
+  `History rows: ${allRows.length}`
+);
+
+console.log(
+  `Live rows: ${liveRows.length}`
+);
+
+return {
+  allRows,
+  liveRows
+};
 }
 
 module.exports = {

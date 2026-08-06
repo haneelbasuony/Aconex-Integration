@@ -669,7 +669,182 @@ async function closeConnection() {
    * Every Python process opens and closes its own pyodbc connection.
    */
 }
+async function upsertHistoryRows(rows) {
 
+  if (!rows.length) {
+
+    console.log(
+      'No document rows to sync — skipping SQL upsert.'
+    );
+
+    return {
+      upserted: 0,
+      deleted: 0
+    };
+  }
+
+
+  const columns =
+    getColumns();
+
+  const server =
+    requireEnv('SQL_SERVER');
+
+  const database =
+    requireEnv('SQL_DATABASE');
+
+  const driver =
+    process.env.SQL_ODBC_DRIVER ||
+    'ODBC Driver 17 for SQL Server';
+
+  const scriptPath =
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      'scripts',
+      'upsert_to_sql_history.py'
+    );
+
+
+  if (!fs.existsSync(scriptPath)) {
+
+    throw new Error(
+      `Python upsert script not found at ${scriptPath}`
+    );
+  }
+
+
+  const tmpFile =
+    path.join(
+      os.tmpdir(),
+      `aconex-sync-${Date.now()}-${process.pid}.json`
+    );
+
+
+  const projectId =
+    requireEnv('ACONEX_PROJECT_ID');
+
+
+  rows = rows.map(row => ({
+    projectid: projectId,
+    ...row
+  }));
+
+
+  fs.writeFileSync(
+    tmpFile,
+    JSON.stringify({
+      rows,
+      columns
+    })
+  );
+
+
+  console.log(
+    `Handing off ${rows.length} document rows to Python (${scriptPath})...`
+  );
+
+
+  return new Promise((resolve, reject) => {
+
+    execFile(
+      PYTHON_COMMAND,
+      [
+        scriptPath,
+
+        '--data-file',
+        tmpFile,
+
+        '--server',
+        server,
+
+        '--database',
+        database,
+
+        '--schema',
+        config.sql.schema,
+
+        '--table',
+        config.sql.documentHistoryTableName,
+
+        '--driver',
+        driver
+      ],
+      {
+        maxBuffer: 1024 * 1024 * 50
+      },
+
+      (err, stdout, stderr) => {
+
+        fs.unlink(
+          tmpFile,
+          () => {}
+        );
+
+
+        if (stdout) {
+          console.log(stdout);
+        }
+
+
+        if (stderr) {
+          console.error(stderr);
+        }
+
+
+        if (err) {
+
+          reject(
+            new Error(
+              `Python document upsert failed: ${
+                (stderr || err.message).trim()
+              }`
+            )
+          );
+
+          return;
+        }
+
+
+        const upsertMatch =
+          stdout.match(
+            /UPSERTED:(\d+)/
+          );
+
+        const deleteMatch =
+          stdout.match(
+            /DELETED:(\d+)/
+          );
+
+
+        const upserted =
+          upsertMatch
+            ? parseInt(upsertMatch[1], 10)
+            : 0;
+
+        const deleted =
+          deleteMatch
+            ? parseInt(deleteMatch[1], 10)
+            : 0;
+
+          console.log(
+          `✔ Upserted ${upserted} document rows`
+        );
+
+        console.log(
+          `✔ Deleted ${deleted} document rows`
+        );
+
+
+        resolve({
+          upserted,
+          deleted
+        });
+      }
+    );
+  });
+}
 
 // ============================================================================
 // EXPORTS
@@ -681,15 +856,15 @@ module.exports = {
 
   upsertRows,
 
+  upsertHistoryRows,
+
   syncRowsToSql,
 
   syncWorkflowRowsToSql,
 
-  closeConnection,
-
-  getColumns,
-
   syncPackageRowsToSql,
 
+  closeConnection,
 
+  getColumns
 };

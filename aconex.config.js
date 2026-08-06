@@ -90,6 +90,8 @@ fields: [
   "author",
   "discipline",
 
+  "packagenumber",
+
   "comments",
 
   "registered",
@@ -120,15 +122,15 @@ fields: [
 
   // BUDOUR Project_Fields
   //--------------------------
-  "ActivityCodeSwc_singleSelect",
-  "AreaCodeSubpbs_singleSelect",
-  "AreaCode_singleSelect",
-  "CwpCode_singleSelect",
-  "EnppiOriginator_singleSelect",
-  "EwpCode_singleSelect",
-  "IwpCode_singleSelect",
-  "OriginatorCode_singleSelect",
-  "ProcessUnitCode_singleSelect",
+  // "ActivityCodeSwc_singleSelect",
+  // "AreaCodeSubpbs_singleSelect",
+  // "AreaCode_singleSelect",
+  // "CwpCode_singleSelect",
+  // "EnppiOriginator_singleSelect",
+  // "EwpCode_singleSelect",
+  // "IwpCode_singleSelect",
+  // "OriginatorCode_singleSelect",
+  // "ProcessUnitCode_singleSelect",
 
   // "authorisedBy",
   // "category",
@@ -143,7 +145,7 @@ fields: [
   // "forreview",
   // "toclient",
   // "reference",
-  // "packagenumber",
+
   // "contractnumber",
   // "contractorDocumentNumber",
   // "contractorRevision",
@@ -194,7 +196,8 @@ fields: [
   // --------------------------------------------------------------------
   sql: {
     schema: 'dbo',
-    tableName: 'DocumentRegisterTest', // <-- confirm exact spelling 
+    tableName: 'DocumentRegisterTest',// <-- confirm exact spelling 
+    documentHistoryTableName: 'DocumentRegisterHistory', 
     workflowTableName: 'WorkflowTest', 
     packageTableName: 'PackageRegisterTest',
     // Set to a real column name (e.g. 'LastSyncedAt') ONLY if the existing

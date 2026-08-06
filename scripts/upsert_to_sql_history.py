@@ -8,7 +8,7 @@ Called by src/db/pythonUpsert.js.
 Reads a JSON file containing rows + column metadata (written by Node),
 connects to SQL Server using Trusted_Connection=yes, then:
 
-    1. Uses (projectid + trackingid) as the synchronization key.
+    1. Uses (projectid + documentId) as the synchronization key.
     2. Updates an existing document when the key already exists.
     3. Inserts a new document when the key does not exist.
     4. Deletes documents from SQL that are no longer returned by Aconex.
@@ -16,7 +16,7 @@ connects to SQL Server using Trusted_Connection=yes, then:
 
 Primary key in SQL Server:
 
-    PRIMARY KEY (projectid, trackingid)
+    PRIMARY KEY (projectid, documentId)
 
 ============================================================================
 """
@@ -52,9 +52,9 @@ def build_update_sql(schema, table, columns):
 
     Synchronization key:
 
-        projectid + trackingid
+        projectid + documentId
 
-    trackingid is NOT used as the primary/synchronization key.
+    documentId is NOT used as the primary/synchronization key.
     """
 
     non_key_columns = [
@@ -62,7 +62,7 @@ def build_update_sql(schema, table, columns):
         for c in columns
         if c["canonicalKey"] not in (
             "projectid",
-            "trackingid"
+            "documentId"
         )
     ]
 
@@ -81,7 +81,7 @@ def build_update_sql(schema, table, columns):
     SET
     {set_clause}
     WHERE [projectid] = ?
-    AND [trackingid] = ?
+    AND [documentId] = ?
     """
 
     return sql
@@ -132,7 +132,7 @@ def build_update_params(row, columns):
 
         1. all non-key column values
         2. projectid
-        3. trackingid
+        3. documentId
     """
 
     non_key_values = [
@@ -140,12 +140,12 @@ def build_update_params(row, columns):
         for c in columns
         if c["canonicalKey"] not in (
             "projectid",
-            "trackingid"
+            "documentId"
         )
     ]
 
     project_id = row.get("projectid")
-    tracking_id = row.get("trackingid")
+    tracking_id = row.get("documentId")
 
     return (
         non_key_values
@@ -184,7 +184,7 @@ def delete_removed_rows(
     batch_size=1000
 ):
     """
-    Delete rows for the current project whose trackingid was not returned
+    Delete rows for the current project whose documentId was not returned
     by Aconex.
 
     Deletion is performed in batches to avoid SQL Server's 2,100 parameter
@@ -194,7 +194,7 @@ def delete_removed_rows(
 
         DELETE FROM DocumentRegister
         WHERE projectid = ?
-        AND trackingid NOT IN (?, ?, ...)
+        AND documentId NOT IN (?, ?, ...)
 
     Only up to batch_size tracking IDs are placed in each statement.
     """
@@ -224,7 +224,7 @@ def delete_removed_rows(
     #
     # We cannot simply use:
     #
-    #     trackingid NOT IN (?, ?, ... all IDs ...)
+    #     documentId NOT IN (?, ?, ... all IDs ...)
     #
     # because SQL Server has a 2,100 parameter limit.
     #
@@ -235,15 +235,15 @@ def delete_removed_rows(
     # ----------------------------------------------------------------------
 
     cursor.execute("""
-        CREATE TABLE #Aconextrackingids
+        CREATE TABLE #AconexdocumentIds
         (
-            trackingid NVARCHAR(255) NOT NULL
+            documentId NVARCHAR(255) NOT NULL
         )
     """)
 
     # Insert returned tracking IDs into temporary table.
     insert_sql = """
-        INSERT INTO #Aconextrackingids (trackingid)
+        INSERT INTO #AconexdocumentIds (documentId)
         VALUES (?)
     """
 
@@ -265,8 +265,8 @@ WHERE target.[projectid] = ?
   AND NOT EXISTS
   (
       SELECT 1
-      FROM #Aconextrackingids AS source
-      WHERE source.[trackingid] = target.[trackingid]
+      FROM #AconexdocumentIds AS source
+      WHERE source.[documentId] = target.[documentId]
   )
 """
 
@@ -351,9 +351,9 @@ def main():
             "The configured fields must include 'projectid'."
         )
 
-    if "trackingid" not in canonical_keys:
+    if "documentId" not in canonical_keys:
         raise ValueError(
-            "The configured fields must include 'trackingid'."
+            "The configured fields must include 'documentId'."
         )
 
 
@@ -407,7 +407,7 @@ def main():
     )
 
     print(
-        "SQL synchronization key: projectid + trackingid"
+        "SQL synchronization key: projectid + documentId"
     )
 
     print(
@@ -440,7 +440,7 @@ def main():
         for index, row in enumerate(rows, start=1):
 
             project_id = row.get("projectid")
-            tracking_id = row.get("trackingid")
+            tracking_id = row.get("documentId")
 
 
             # -----------------------------------------------------------------
@@ -462,7 +462,7 @@ def main():
             if not tracking_id:
 
                 print(
-                    f"WARNING: Row #{index} has no trackingid. Skipping.",
+                    f"WARNING: Row #{index} has no documentId. Skipping.",
                     file=sys.stderr
                 )
 
@@ -491,7 +491,7 @@ def main():
             #
             # Match using:
             #
-            #     projectid + trackingid
+            #     projectid + documentId
             #
             # If an existing row is found, rowcount should be 1.
             # -----------------------------------------------------------------
@@ -541,7 +541,7 @@ def main():
                 )
 
                 print(
-                    f"trackingid = {tracking_id}",
+                    f"documentId = {tracking_id}",
                     file=sys.stderr
                 )
 
@@ -618,7 +618,7 @@ def main():
                 )
 
                 print(
-                    f"trackingid = {tracking_id}",
+                    f"documentId = {tracking_id}",
                     file=sys.stderr
                 )
 

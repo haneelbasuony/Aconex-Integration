@@ -74,7 +74,8 @@ async function runDocumentSync(accessToken) {
   );
   console.log('');
 
-  let rawRows;
+  let allRows = [];
+  let liveRows = [];
   let keyKind;
 
   // --------------------------------------------------------------------------
@@ -92,17 +93,19 @@ async function runDocumentSync(accessToken) {
       )
       .filter(Boolean);
 
-    rawRows = await searchAllDocumentsAllFilters(accessToken, {
-
-      filters: syncConfig.allFilters.filters,
-
-      returnFields: jsonReturnFields,
-
-      resultSize: syncConfig.allFilters.resultSize
-    });
+    ({
+      allRows,
+      liveRows
+    } = await searchAllDocumentsAllFilters(
+      accessToken,
+      {
+        filters: syncConfig.allFilters.filters,
+        returnFields: jsonReturnFields,
+        resultSize: syncConfig.allFilters.resultSize
+      }
+    ));
 
     keyKind = 'json';
-
   }
 
   // --------------------------------------------------------------------------
@@ -112,41 +115,76 @@ async function runDocumentSync(accessToken) {
   else {
 
     const xmlReturnFields =
-      syncConfig.fields.filter((k) => k !== 'documentId');
+      syncConfig.fields.filter(
+        (k) => k !== 'documentId'
+      );
 
-    rawRows = await listAllDocuments(accessToken, {
+    const xmlRows =
+      await listAllDocuments(
+        accessToken,
+        {
+          searchQuery:
+            syncConfig.register.searchQuery,
 
-      searchQuery: syncConfig.register.searchQuery,
+          pageSize:
+            syncConfig.register.pageSize,
 
-      pageSize: syncConfig.register.pageSize,
+          returnFields:
+            xmlReturnFields
+        }
+      );
 
-      returnFields: xmlReturnFields
-    });
+    allRows = xmlRows;
+    liveRows = xmlRows;
 
     keyKind = 'xml';
   }
 
+  // --------------------------------------------------------------------------
+  // NORMALIZE HISTORY
+  // --------------------------------------------------------------------------
+
+  const canonicalHistoryRows =
+    allRows.map((row) => {
+
+      const normalized =
+        normalizeRow(
+          row,
+          keyKind
+        );
+
+      return selectConfiguredFields(
+        normalized,
+        syncConfig.fields
+      );
+    });
 
   // --------------------------------------------------------------------------
-  // NORMALIZE
+  // NORMALIZE LIVE
   // --------------------------------------------------------------------------
 
-  const canonicalRows = rawRows.map((row) => {
+  const canonicalLiveRows =
+    liveRows.map((row) => {
 
-    const normalized =
-      normalizeRow(row, keyKind);
+      const normalized =
+        normalizeRow(
+          row,
+          keyKind
+        );
 
-    return selectConfiguredFields(
-      normalized,
-      syncConfig.fields
-    );
-  });
-
+      return selectConfiguredFields(
+        normalized,
+        syncConfig.fields
+      );
+    });
 
   console.log(
-    `\n✔ Normalized ${canonicalRows.length} document rows`
+    `✔ History rows: ${canonicalHistoryRows.length}`
   );
 
+  console.log(
+    `✔ Live rows: ${canonicalLiveRows.length}`
+  );
 
   // --------------------------------------------------------------------------
   // EXCEL
@@ -155,12 +193,17 @@ async function runDocumentSync(accessToken) {
   if (syncConfig.output.xlsx) {
 
     await exportTableToXlsx(
-      canonicalRows,
+      canonicalLiveRows,
       './document-register.xlsx',
       'Document Register'
     );
-  }
 
+    await exportTableToXlsx(
+      canonicalHistoryRows,
+      './document-register-history.xlsx',
+      'Document Register History'
+    );
+  }
 
   // --------------------------------------------------------------------------
   // SQL
@@ -173,23 +216,36 @@ async function runDocumentSync(accessToken) {
 
     const {
       syncRowsToSql,
+      upsertHistoryRows,
       closeConnection
     } = getBackend();
 
     try {
 
-      await syncRowsToSql(canonicalRows);
+      console.log(
+        `Syncing ${canonicalHistoryRows.length} history rows to ${syncConfig.sql.documentHistoryTableName}`
+      );
+
+      await upsertHistoryRows(
+        canonicalHistoryRows
+      );
+
+      console.log(
+        `Syncing ${canonicalLiveRows.length} live rows to ${syncConfig.sql.tableName}`
+      );
+
+      await syncRowsToSql(
+        canonicalLiveRows
+      );
 
     } finally {
 
       await closeConnection();
-
     }
   }
 
-
   console.log(
-    `✔ Document Register sync completed: ${canonicalRows.length} rows`
+    `✔ Document sync completed. History=${canonicalHistoryRows.length}, Live=${canonicalLiveRows.length}`
   );
 }
 
